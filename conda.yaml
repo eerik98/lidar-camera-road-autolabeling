@@ -1,0 +1,17 @@
+name: 2nd_article
+channels:
+  - pytorch
+  - nvidia
+dependencies:
+  - python=3.11
+  - pytorch=2
+  - torchvision
+  - pytorch-cuda=12.4
+  - tqdm
+  - numpy=1
+  - conda-forge::pydensecrf
+  - opencv
+  - pip
+  - pip:
+    - utm
+    - open3d

@@ -1,0 +1,40 @@
+#params.yaml
+
+dataset_path: '/home/eerik/data_storage/DATA/cadcd'
+
+wheels:
+  l_wheel_scan_loc: [2, 1, -2.1]
+  r_wheel_scan_loc: [2, -1, -2.1]
+
+data_sampling:
+  crop_start: 370
+  crop_end: 770
+  dist_between_samples: 5
+
+pre_processing:
+  lidar_fov: 90
+  distance_filter_threshold: 1
+  height_filter_threshold: 1
+  max_pcd2gnss_distance: 1
+  max_center2wheel_distance: 1.5
+  occlusion_filter_pixel_threshold: 10
+  noise_filtering_nb_neighbors: 20
+  noise_filtering_std_ratio: 1
+  trajectory_length: 100
+
+lidar_auto_labeling:
+  max_radial_dist: 5
+  use_height: True
+  use_slope: True
+  slope_label_std: 0.02 #0.01 #0.005 #0.05
+  height_label_std: 0.1 #0.1
+ 
+dino_auto_labeling:
+  min_refrence_feats: 20
+  img_scale: 1.0
+  dino_label_std: 0.6 #0.7
+
+post_processing:
+  use_lidar_label: True
+  use_dino_label: False
+  use_crf: True
