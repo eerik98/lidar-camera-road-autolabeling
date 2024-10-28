@@ -43,7 +43,7 @@ The outputs are saved under `processed/<day>/<seq>/autolabels/lidar`.
 ### 5. Camera autolabel
 Run the visual autolabeling script:
 ```
-python3 dino_autolabeling.py <day> <sequence>
+python3 camera_autolabeling.py <day> <sequence>
 ```
 The outputs are saved under `processed/<day>/<seq>/autolabels/camera`.
 <img src="https://github.com/user-attachments/assets/228397e2-43b4-4cae-8c9c-18cecc463585" alt="Image description" width="500"/>
