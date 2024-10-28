@@ -2,8 +2,9 @@
 
 dataset_path: '/home/eerik/data_storage/DATA/cadcd'
 
-wheels:
+origin: #location of the wheels and center in lidar coords.
   l_wheel_scan_loc: [2, 1, -2.1]
+  center_scan_loc: [2, 0, -2.1]
   r_wheel_scan_loc: [2, -1, -2.1]
 
 data_sampling:
@@ -26,15 +27,15 @@ lidar_auto_labeling:
   max_radial_dist: 5
   use_height: True
   use_slope: True
-  slope_label_std: 0.02 #0.01 #0.005 #0.05
-  height_label_std: 0.1 #0.1
+  slope_label_std: 0.02 
+  height_label_std: 0.1 
  
-dino_auto_labeling:
+camera_auto_labeling:
   min_refrence_feats: 20
   img_scale: 1.0
-  dino_label_std: 0.6 #0.7
+  camera_label_std: 0.6 
 
 post_processing:
   use_lidar_label: True
-  use_dino_label: False
+  use_camera_label: True
   use_crf: True

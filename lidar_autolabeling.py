@@ -136,9 +136,10 @@ def main():
     with open('params_cadcd.yaml', 'r') as file:
         params = yaml.safe_load(file)
         crop_start=params['data_sampling']['crop_start']
-        l_wheel_0=params['wheels']['l_wheel_scan_loc']
-        r_wheel_0=params['wheels']['r_wheel_scan_loc']
+        l_wheel_0=params['origin']['l_wheel_scan_loc']
+        r_wheel_0=params['origin']['r_wheel_scan_loc']
         dataset_path=params['dataset_path']
+        
         config=params['lidar_auto_labeling']
         slope_std=config['slope_label_std']
         height_std=config['height_label_std']

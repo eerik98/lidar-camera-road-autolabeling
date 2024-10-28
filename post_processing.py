@@ -55,14 +55,14 @@ def main():
         params = yaml.safe_load(file)
         config=params['post_processing']
         use_lidar_label=config['use_lidar_label']
-        use_dino_label=config['use_dino_label']
+        use_dino_label=config['use_camera_label']
         use_crf=config['use_crf']
         dataset_path=params['dataset_path']
 
     seq_path=os.path.join(dataset_path,'processed',day,seq)
 
     #inputs
-    dino_label_path=os.path.join(seq_path,'autolabels/dino/labels')
+    dino_label_path=os.path.join(seq_path,'autolabels/camera/labels')
     lidar_label_path=os.path.join(seq_path,'autolabels/lidar/labels')
     img_path=os.path.join(seq_path,'data/imgs')
     #outputs
@@ -73,7 +73,7 @@ def main():
     os.makedirs(label_overlaid_path,exist_ok=True)
 
     if not use_lidar_label and not use_dino_label:
-        print("Set at least one of the options: use_lidar_label or use_dino_label to True")
+        print("Set at least one of the options: use_lidar_label or use_camera_label to True")
         exit()
 
     num_files = len(os.listdir(img_path))

@@ -118,7 +118,7 @@ def main():
     output_path=os.path.join(dataset_path,'processed',day,seq,'data')
     os.makedirs(output_path,exist_ok=True)
 
-    camera_matrix,extrinsics,dist_coeffs,gnss2lidar,l_wheel_0,r_wheel_0=utils.load_calib_cadcd(dataset_path,day)
+    camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_cadcd(dataset_path,day)
 
     #Input paths
     input_pcd_path=os.path.join(input_seq,'lidar_points')

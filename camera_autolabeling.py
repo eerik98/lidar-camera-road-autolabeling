@@ -62,9 +62,9 @@ def main():
 
     with open('params_cadcd.yaml', 'r') as file:
         params = yaml.safe_load(file)
-        config=params['dino_auto_labeling']
+        config=params['camera_auto_labeling']
         scale=config['img_scale']
-        std=config['dino_label_std']
+        std=config['camera_label_std']
         min_refrence_feats=config['min_refrence_feats']
         dataset_path=params['dataset_path']
 
@@ -75,8 +75,8 @@ def main():
     img_path=os.path.join(seq_path,'data/imgs')
 
     #output paths
-    auto_label_path=os.path.join(seq_path,'autolabels/dino/labels')
-    auto_label_overlaid_path=os.path.join(seq_path,'autolabels/dino/labels_overlaid')
+    auto_label_path=os.path.join(seq_path,'autolabels/camera/labels')
+    auto_label_overlaid_path=os.path.join(seq_path,'autolabels/camera/labels_overlaid')
 
     #create dirs if doesnt exists
     os.makedirs(auto_label_overlaid_path,exist_ok=True)

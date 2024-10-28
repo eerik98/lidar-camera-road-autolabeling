@@ -35,14 +35,15 @@ def closest_pcd_point(
     scan: np.ndarray,               #shape: (number of rings,). Pointcloud organized to scan rings. Each element contains list of points in that scan ring.
     max_scan2pose_distance: float,  #maximum allowed distance between scan point and pose to create a match
     height_threshold: float,        #maximum allowed heigth difference between trajectory points in consecutive scan rings
-    distance_threshold: float       #minimum allowed distance between trajectory points in consecutive scan rings
+    distance_threshold: float,      #minimum allowed distance between trajectory points in consecutive scan rings
+    intial_point: np.ndarray        #shape: (3). Location of the inital trajectory point in lidar frame
 ) ->np.ndarray:                     #shape: (number of point matches,3). Ring, point id and heading for each match.
     
     """
     Finds the closest match between poses and scan points at each scan ring. 
     """
     trajectory=[]
-    prev_point=np.array([0,0,-2.1])
+    prev_point=intial_point
     for ring in range(len(scan)):
       if len(scan[ring])>0:
         ring_points=scan[ring]
@@ -220,12 +221,15 @@ def main():
     seq=sys.argv[2]
 
     #Parameters
-    with open('params_own_data.yaml', 'r') as file:
+    with open('params_cadcd.yaml', 'r') as file:
         params = yaml.safe_load(file)
-        config=params['pre_processing']
+
         crop_start=params['data_sampling']['crop_start']
-        l_wheel_0=params['wheels']['l_wheel_scan_loc']
-        r_wheel_0=params['wheels']['r_wheel_scan_loc']
+        l_wheel_0=params['origin']['l_wheel_scan_loc']
+        r_wheel_0=params['origin']['r_wheel_scan_loc']
+        center=params['origin']['center_scan_loc']
+
+        config=params['pre_processing']
         dataset_path=params['dataset_path']
         distance_threshold = config['distance_filter_threshold']
         height_threshold=config['height_filter_threshold']
@@ -276,7 +280,7 @@ def main():
         scan=fov_filtering(scan,lidar_fov)
         filtered_scan=noise_filtering(scan,noise_filtering_nb_neighbors,noise_filtering_std_ratio)
         future_poses=get_future_poses(poses.copy(),current_pose_id,trajectory_length,gnss2lidar)
-        trajectory=closest_pcd_point(future_poses,filtered_scan,max_pcd2gnss_distance,height_threshold,distance_threshold)
+        trajectory=closest_pcd_point(future_poses,filtered_scan,max_pcd2gnss_distance,height_threshold,distance_threshold,np.array(center))
 
         wheel_point_idx=wheel_contact_points(filtered_scan,trajectory,max_center2wheel_distance) 
         wheel_point_idx=occlusion_filtering(wheel_point_idx,filtered_scan,extrinsics,camera_matrix,occlusion_filter_pixel_threshold)
@@ -291,7 +295,7 @@ def main():
         
         mask=utils.get_polygon_mask(image_points, image_shape=(frame.shape[0],frame.shape[1]))
 
-        # utils.visualize_pcd(filtered_scan,wheel_point_idx) #uncomment if you want to visualize the trajecotry in the pointcloud
+        #utils.visualize_pcd(filtered_scan,wheel_point_idx) #uncomment if you want to visualize the trajecotry in the pointcloud
 
         overlaid_mask=utils.overlay_mask(frame,mask)
 
