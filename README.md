@@ -22,7 +22,7 @@ Change the `dataset_path` in `params_cadcd.yaml` to the path of the downloaded d
 ```
 python3 sample_cadcd.py <day> <sequence>
 ```
-`<day>` and `<sequence>` define the sequence to be processed. For example '2019_02_27' '0002'. The sampled data is saved under `processed/<day>/<seq>/data`.
+`<day>` and `<sequence>` define the sequence to be processed. For example `'2019_02_27'` `'0002'`. The sampled data is saved under `processed/<day>/<seq>/data`.
 ### 3. Pre-process
 Run the pre-processing script:
 ```
