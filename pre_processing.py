@@ -90,7 +90,7 @@ def wheel_contact_points(
 
         x_right = x - np.cos(theta+np.pi/2)
         y_right = y - np.sin(theta+np.pi/2)
-        
+
         scan_ring_thetas=np.arctan2(scan_ring[:,1],scan_ring[:,0])
         theta_left=np.arctan2(y_left,x_left)
         l_idx=utils.find_closest_index(theta_left,scan_ring_thetas)
@@ -218,10 +218,10 @@ def fov_filtering(
 
 
 def main():
+    
     day=sys.argv[1]
     seq=sys.argv[2]
 
-    #Parameters
     with open('params_cadcd.yaml', 'r') as file:
         params = yaml.safe_load(file)
 
