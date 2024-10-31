@@ -65,9 +65,11 @@ def main():
     dino_label_path=os.path.join(seq_path,'autolabels/camera/labels')
     lidar_label_path=os.path.join(seq_path,'autolabels/lidar/labels')
     img_path=os.path.join(seq_path,'data/imgs')
+
     #outputs
     label_path=os.path.join(seq_path,'autolabels/post_processing/labels')
     label_overlaid_path=os.path.join(seq_path,'autolabels/post_processing/labels_overlaid')
+
     #create dirs if doesnt exists
     os.makedirs(label_path,exist_ok=True)
     os.makedirs(label_overlaid_path,exist_ok=True)
@@ -78,16 +80,16 @@ def main():
 
     num_files = len(os.listdir(img_path))
     for data_id in tqdm(range(num_files)):
+        
+        #Read data
         frame=cv2.imread(os.path.join(img_path,str(data_id)+'.png'))
-
-        #read labels
         if use_dino_label:
             dino_label=cv2.imread(os.path.join(dino_label_path,str(data_id)+'.png'))
   
         if use_lidar_label:
             lidar_label=cv2.imread(os.path.join(lidar_label_path,str(data_id)+'.png'))
 
-        #combine if more than one label
+        #Combine labels
         if use_dino_label and use_lidar_label:
             label=combine_labels(lidar_label,dino_label)
         
@@ -97,14 +99,14 @@ def main():
         if use_lidar_label and not use_dino_label:
             label=lidar_label[:,:,1]/255
 
-        #post process with crf if wanted
+        #Post process with crf if wanted
         if use_crf:
             bin_label=crf_post_processing(frame,label)
         else:
             bin_label=(label>0.5)
 
+        #Save outputs
         overlaid=utils.overlay_mask(frame,bin_label)
-        
         cv2.imwrite(os.path.join(label_overlaid_path,str(data_id)+'.png'),overlaid)
         cv2.imwrite(os.path.join(label_path,str(data_id)+'.png'),(bin_label.astype('uint8'))*255)
 main()

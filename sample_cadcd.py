@@ -103,6 +103,7 @@ def separate_scan_rings(
 
 
 def main():
+
     day=sys.argv[1]
     seq=sys.argv[2]
 
@@ -152,30 +153,32 @@ def main():
 
     while True:
         
-        # if pose data for 100 following meters doesnt exist exit
+        # If pose data for 100 following meters doesnt exist exit
         if not utils.take_following_N_m(gnss_data[gnss_id:,:2],100):
             break
-
+        
+        # Find img id and pcd id corresponding to the pose id. 
         img_id=utils.find_closest_index(camera_timestamps,gnss_timestamps[gnss_id])
         pcd_id=utils.find_closest_index(pcd_timestamps,gnss_timestamps[gnss_id])
 
-        # read image and undistort
+        # Read image and undistort
         img=cv2.imread(os.path.join(input_camera_path,'data/'+str(img_id).zfill(10)+'.png'))
         img=cv2.undistort(img,distCoeffs=dist_coeffs,cameraMatrix=camera_matrix)
         img=img[crop_start:crop_end,:,:]     
         cv2.imwrite(os.path.join(output_img_path,str(data_id)+'.png'),img)
         
-        # read lidar scan corresponding to the current gnss_id and separate scan rings based on polar angle
+        # Read lidar scan corresponding to the current gnss_id and separate scan rings based on polar angle
         scan_data = np.fromfile(os.path.join(input_pcd_path,'data/'+str(pcd_id).zfill(10)+'.bin'), dtype=np.float32)
         scan_data = scan_data.reshape((-1, 4))[:,:3]
         scan_rings=separate_scan_rings(scan_data)
         np.save(os.path.join(output_pcd_path,str(data_id)+'.npy'),scan_rings)
 
+        # Append the current pose id and compute the next one
         gnss_ids.append(gnss_id)
         gnss_id=gnss_id+utils.take_following_N_m(gnss_data[gnss_id:],5)
-
         data_id+=1
 
+    # Save the pose ids
     np.savetxt(output_gnss_id_path,gnss_ids,fmt='%d')
         
 main()

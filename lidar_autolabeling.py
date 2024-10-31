@@ -45,7 +45,7 @@ def get_height_score(
 
     return score
 
-def get_slope_score(
+def get_gradient_score(
     scan: np.ndarray,               #shape: (number of rings,). Pointcloud organized to scan rings. Each element contains list of points in that scan ring.
     trajectory_data: np.ndarray,    # shape: (number of trajectory points, 4). Ring, center point, left wheel point and right wheel point id for each trajectory point
     gradient_std: float             # standar deviation for gradient based score
@@ -155,14 +155,15 @@ def main():
 
     seq_path=os.path.join(dataset_path,'processed',day,seq)
 
-
     #input paths
     scan_path=os.path.join(seq_path,'autolabels/pre_processing/filtered_scans')
     trajectory_path=os.path.join(seq_path,'autolabels/pre_processing/trajectory_data')
     img_path=os.path.join(seq_path,'data/imgs')
+
     #output paths
     auto_label_path=os.path.join(seq_path,'autolabels/lidar/labels')
     auto_label_overlaid_path=os.path.join(seq_path,'autolabels/lidar/labels_overlaid')
+
     #create dirs if doesnt exists
     os.makedirs(auto_label_overlaid_path,exist_ok=True)
     os.makedirs(auto_label_path,exist_ok=True)
@@ -170,11 +171,13 @@ def main():
 
     num_frames = len(os.listdir(scan_path))
     for data_id in tqdm(range(num_frames)):
+
+        #Read data
         scan=np.load(os.path.join(scan_path,str(data_id)+'.npy'),allow_pickle=True)
         frame=cv2.imread(os.path.join(img_path,str(data_id)+'.png'))
-
         trajectory_data = np.loadtxt(os.path.join(trajectory_path,str(data_id)+'.csv'), delimiter=',',dtype='int')
 
+        #Check if enough trajectory points
         if len(trajectory_data)<2:
             print("frame skipped. Not enough trajectory data")
             label=np.zeros(frame.shape)
@@ -182,9 +185,13 @@ def main():
             cv2.imwrite(os.path.join(auto_label_path,str(data_id)+'.png'),label)
             continue
         
+        #Compute height score
         height_score=get_height_score(scan,trajectory_data,height_std,max_radial_dist)
-        slope_score=get_slope_score(scan,trajectory_data,slope_std)
 
+        #Compute gradient score
+        slope_score=get_gradient_score(scan,trajectory_data,slope_std)
+
+        #Combine scores
         if use_height and use_slope:
             score=utils.nanmean(np.concatenate(height_score),np.concatenate(slope_score),require_both=True)
         if use_height and not use_slope:
@@ -194,20 +201,19 @@ def main():
         if not use_height and not use_slope:
             print("Set at least one of the options: use_height or use_slope to True")
             break
-
+        
+        #Project scan points to image
         image_points=utils.lidar_points_to_image(np.vstack(scan)[:,:3],extrinsics,camera_matrix)
-
-        # Add wheel point as certain road points
         image_points=np.vstack([image_points,[l_wheel_img_location,r_wheel_img_location]])
         score=np.hstack([score,[1,1]])
 
+        #Interpolate between points
         interpolated_label=interpolate(image_points,score,frame.shape)
 
+        #Save outputs
         rgb_label=utils.make_rgb_label(interpolated_label*255)
-
         overlaid_img=utils.draw_points_to_img(frame,image_points,score)
         overlaid_img=utils.overlay_heatmap(overlaid_img,interpolated_label)
-
         cv2.imwrite(os.path.join(auto_label_path,str(data_id)+'.png'),rgb_label)
         cv2.imwrite(os.path.join(auto_label_overlaid_path,str(data_id)+'.png'),overlaid_img)
 

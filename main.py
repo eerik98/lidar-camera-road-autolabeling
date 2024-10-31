@@ -13,9 +13,8 @@ subprocess.run(['python3','pre_processing.py',day,seq])
 print("Starting lidar autolabeling")
 subprocess.run(['python3','lidar_autolabeling.py',day,seq])
 
-
-print("Starting dino autolabeling")
-subprocess.run(['python3','dino_autolabeling.py',day,seq])
+print("Starting camera autolabeling")
+subprocess.run(['python3','camera_autolabeling.py',day,seq])
 
 print("Starting post processing")
 subprocess.run(['python3','post_processing.py',day,seq])

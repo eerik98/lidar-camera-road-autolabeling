@@ -90,6 +90,7 @@ def wheel_contact_points(
 
         x_right = x - np.cos(theta+np.pi/2)
         y_right = y - np.sin(theta+np.pi/2)
+        
         scan_ring_thetas=np.arctan2(scan_ring[:,1],scan_ring[:,0])
         theta_left=np.arctan2(y_left,x_left)
         l_idx=utils.find_closest_index(theta_left,scan_ring_thetas)
@@ -241,8 +242,6 @@ def main():
         trajectory_length = config['trajectory_length']
         lidar_fov=config['lidar_fov']
 
-    #camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_own_data(dataset_path,day)
-
     camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_cadcd(dataset_path,day)
     camera_matrix[1,2]=camera_matrix[1,2]-crop_start #add the effect off cropping
         
@@ -273,36 +272,40 @@ def main():
 
     for i in tqdm(range(len(pose_idx))):
         
+        #Read data
         current_pose_id=pose_idx[i]
         frame=cv2.imread(os.path.join(img_path,str(i)+'.png'))
         scan=np.load(os.path.join(pcd_path,str(i)+'.npy'),allow_pickle=True)
 
+        #Filter scan
         scan=fov_filtering(scan,lidar_fov)
-        filtered_scan=noise_filtering(scan,noise_filtering_nb_neighbors,noise_filtering_std_ratio)
+        scan=noise_filtering(scan,noise_filtering_nb_neighbors,noise_filtering_std_ratio)
+
+        #Find future trajectory in scan
         future_poses=get_future_poses(poses.copy(),current_pose_id,trajectory_length,gnss2lidar)
-        trajectory=closest_pcd_point(future_poses,filtered_scan,max_pcd2gnss_distance,height_threshold,distance_threshold,np.array(center))
+        trajectory=closest_pcd_point(future_poses,scan,max_pcd2gnss_distance,height_threshold,distance_threshold,np.array(center))
 
-        wheel_point_idx=wheel_contact_points(filtered_scan,trajectory,max_center2wheel_distance) 
-        wheel_point_idx=occlusion_filtering(wheel_point_idx,filtered_scan,extrinsics,camera_matrix,occlusion_filter_pixel_threshold)
-
-        l_wheel_points=utils.ring_and_id2xyz(wheel_point_idx[:,[0,2]],filtered_scan)
-        r_wheel_points=utils.ring_and_id2xyz(wheel_point_idx[:,[0,3]],filtered_scan)
-
+        #Define wheel points in scan
+        wheel_point_idx=wheel_contact_points(scan,trajectory,max_center2wheel_distance) 
+        wheel_point_idx=occlusion_filtering(wheel_point_idx,scan,extrinsics,camera_matrix,occlusion_filter_pixel_threshold)
+        l_wheel_points=utils.ring_and_id2xyz(wheel_point_idx[:,[0,2]],scan) 
+        r_wheel_points=utils.ring_and_id2xyz(wheel_point_idx[:,[0,3]],scan)
         wheel_points=np.concatenate((l_wheel_points,np.flip(r_wheel_points,axis=0)))
         wheel_points=np.vstack([l_wheel_0,wheel_points,r_wheel_0])
 
+        #Define trajectory in image
         image_points=utils.lidar_points_to_image(wheel_points,extrinsics,camera_matrix) # x,y
-        
         mask=utils.get_polygon_mask(image_points, image_shape=(frame.shape[0],frame.shape[1]))
 
-        #utils.visualize_pcd(filtered_scan,wheel_point_idx) #uncomment if you want to visualize the trajecotry in the pointcloud
+        #Visualize
+        #utils.visualize_pcd(scan,wheel_point_idx) #uncomment if you want to visualize the trajecotry in the pointcloud
 
+        #Save outputs
         overlaid_mask=utils.overlay_mask(frame,mask)
-
         np.savetxt(os.path.join(trajectory_data_path,str(i)+'.csv'),wheel_point_idx,delimiter=',',fmt='%d, %d,%d,%d')
         cv2.imwrite(os.path.join(mask_path,str(i)+'.png'),(mask.astype('uint8'))*255)
         cv2.imwrite(os.path.join(mask_overlaid_path,str(i)+'.png'),overlaid_mask)
-        np.save(os.path.join(filtered_scan_path,str(i)+'.npy'),filtered_scan)
+        np.save(os.path.join(filtered_scan_path,str(i)+'.npy'),scan)
 
 if __name__=="__main__": 
     main()

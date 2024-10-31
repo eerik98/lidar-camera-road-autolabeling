@@ -52,6 +52,7 @@ def cosine_similarity_score(
     return cos_sim
 
 def main():
+
     day=sys.argv[1]
     seq=sys.argv[2]
 
@@ -93,15 +94,18 @@ def main():
     prev_mean_feature=None
     
     for data_id in tqdm(range(num_files)):
+        
+        #Read data
         frame=cv2.imread(os.path.join(img_path,str(data_id)+'.png'))
         rgb_img=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) #Dinov2 expects images in RGB format
         mask=cv2.imread(os.path.join(trajectory_mask_path,str(data_id)+'.png'),cv2.IMREAD_GRAYSCALE).astype('bool')
-
         img_tensor=img_transform(rgb_img).unsqueeze(0).to(device) # 1,3,H,W. This format required from dinov2
         mask_tensor=mask_transfrom(mask).squeeze(0).to(device) # H,W
 
+        #Compute dino_features
         features=dino_features(model,img_tensor)
 
+        #Check if enough trajectory samples
         if mask.sum()<min_refrence_feats and prev_mean_feature is not None:
             mean_feat=prev_mean_feature
             print("Not enough refrence features, using previous valid sample")
@@ -109,11 +113,13 @@ def main():
             mean_feat=mean_feature(features,mask_tensor)
             prev_mean_feature=mean_feat
 
+        #Compute cosine similarity based score
         score=cosine_similarity_score(features,mean_feat,std).cpu().numpy()
+
+        #Save outputs
         score=cv2.resize(score*255,(frame.shape[1],frame.shape[0]),interpolation = cv2.INTER_LINEAR)
         label=utils.make_rgb_label(score)
         overlaid=utils.overlay_heatmap(frame,score/255)
-
         cv2.imwrite(os.path.join(auto_label_path,str(data_id)+'.png'),label)
         cv2.imwrite(os.path.join(auto_label_overlaid_path,str(data_id)+'.png'),overlaid)
 main()
