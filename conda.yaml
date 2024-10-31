@@ -1,17 +1,16 @@
-name: 2nd_article
+name: lidar-camera-road-autolabeling
 channels:
   - pytorch
   - nvidia
 dependencies:
   - python=3.11
-  - pytorch=2
-  - torchvision
+  - pytorch=2.5.0
+  - torchvision=0.20
   - pytorch-cuda=12.4
-  - tqdm
-  - numpy=1
   - conda-forge::pydensecrf
-  - opencv
+  - tqdm
   - pip
   - pip:
-    - utm
+    - opencv-python
     - open3d
+    - utm

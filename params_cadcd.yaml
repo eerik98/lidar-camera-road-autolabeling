@@ -2,7 +2,7 @@
 
 dataset_path: '/home/eerik/data_storage/DATA/cadcd'
 
-origin: #location of the wheels and center in lidar coords.
+origin: #location of the wheels and center in lidar coords. 
   l_wheel_scan_loc: [2, 1, -2.1]
   center_scan_loc: [2, 0, -2.1]
   r_wheel_scan_loc: [2, -1, -2.1]
