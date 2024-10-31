@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 import torch
 import torchvision.transforms as T
 import os
@@ -7,25 +8,19 @@ import torch.nn.functional as F
 import yaml
 from tqdm import tqdm
 import sys
-import numpy as np
 
 def dino_features(
     model: torch.nn.Module, #dinov2 pre-trained feature extractor
-    transform: T.Compose,   #desired transforms for the input image
-    image: np.ndarray       #shape: (height,width,3). Input image in BGR format
+    norm_image: np.ndarray  #shape: (height,width,3). Input image in BGR format
 ) ->torch.tensor:           #shape: (height//patch_size,width//patch_size,size of patch feature). Features for each image patch
     
     """
     Computes features for an image
     """
-
-    rgb_img=cv2.cvtColor(image, cv2.COLOR_BGR2RGB) #Dinov2 expects images in RGB format
-    norm_image=transform(rgb_img)
     with torch.no_grad():
-        features = model.get_intermediate_layers(norm_image.unsqueeze(0).cuda(), n=1)[0]
-    features=features.reshape(norm_image.shape[1]//14,norm_image.shape[2]//14,1536)
+        features = model.get_intermediate_layers(norm_image, n=1)[0]
+    features=features.reshape(norm_image.shape[2]//14,norm_image.shape[3]//14,1536)
     return features
-
 
 def mean_feature(
     features: torch.tensor, #shape: (height//patch_size,width//patch_size,size of patch feature)
@@ -82,30 +77,36 @@ def main():
     os.makedirs(auto_label_overlaid_path,exist_ok=True)
     os.makedirs(auto_label_path,exist_ok=True)
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     dinov2_vitg14 = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitg14_reg',verbose=False)
-    model=dinov2_vitg14.cuda()
-    transform=T.Compose([T.ToTensor(),T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))]) #IMAGENET MEAN AND STD (As recommended by dinov2 authors)
+    model=dinov2_vitg14.to(device)
+
+    frame=cv2.imread(os.path.join(img_path,'0.png'))
+    H_dino_in=int(((frame.shape[0]*scale)//14)*14)  
+    W_dino_in=int(((frame.shape[1]*scale)//14)*14)
+
+    img_transform=T.Compose([T.ToTensor(),T.Resize((H_dino_in,W_dino_in)),T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))]) #IMAGENET MEAN AND STD (As recommended by dinov2 authors)
+    mask_transfrom=T.Compose([T.ToTensor(),T.Resize((H_dino_in//14,W_dino_in//14))])
 
     num_files = len(os.listdir(img_path))
     prev_mean_feature=None
     
     for data_id in tqdm(range(num_files)):
         frame=cv2.imread(os.path.join(img_path,str(data_id)+'.png'))
-        mask=cv2.imread(os.path.join(trajectory_mask_path,str(data_id)+'.png'),cv2.IMREAD_GRAYSCALE)
+        rgb_img=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) #Dinov2 expects images in RGB format
+        mask=cv2.imread(os.path.join(trajectory_mask_path,str(data_id)+'.png'),cv2.IMREAD_GRAYSCALE).astype('bool')
 
-        H_dino_in=int(((frame.shape[0]*scale)//14)*14)  
-        W_dino_in=int(((frame.shape[1]*scale)//14)*14)  
+        img_tensor=img_transform(rgb_img).unsqueeze(0).to(device) # 1,3,H,W. This format required from dinov2
+        mask_tensor=mask_transfrom(mask).squeeze(0).to(device) # H,W
 
-        mask=cv2.resize(mask,(W_dino_in//14,H_dino_in//14),cv2.INTER_AREA)
-        mask=torch.tensor(mask).bool()
-        input_img=cv2.resize(frame,(W_dino_in,H_dino_in),cv2.INTER_AREA)
-        features=dino_features(model,transform,input_img)
+        features=dino_features(model,img_tensor)
 
         if mask.sum()<min_refrence_feats and prev_mean_feature is not None:
             mean_feat=prev_mean_feature
             print("Not enough refrence features, using previous valid sample")
         else:
-            mean_feat=mean_feature(features,mask)
+            mean_feat=mean_feature(features,mask_tensor)
             prev_mean_feature=mean_feat
 
         score=cosine_similarity_score(features,mean_feat,std).cpu().numpy()
