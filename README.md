@@ -2,6 +2,9 @@
 
 Source code for the paper: "Trajectory-based road auto labeling with lidar-camera fusion"
 
+## Video Demo
+[![Video](http://img.youtube.com/vi/sMpXFS5VvJk/0.jpg)](https://www.youtube.com/watch?v=sMpXFS5VvJk)
+
 ## Installation
 
 ```
