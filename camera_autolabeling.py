@@ -53,10 +53,10 @@ def cosine_similarity_score(
 
 def main():
 
-    day=sys.argv[1]
-    seq=sys.argv[2]
+    #day=sys.argv[1]
+    seq=sys.argv[1]
 
-    with open('params_cadcd.yaml', 'r') as file:
+    with open('params_kitti360.yaml', 'r') as file:
         params = yaml.safe_load(file)
         config=params['camera_auto_labeling']
         scale=config['img_scale']
@@ -64,7 +64,7 @@ def main():
         min_refrence_feats=config['min_refrence_feats']
         dataset_path=params['dataset_path']
 
-    seq_path=os.path.join(dataset_path,'processed',day,seq)
+    seq_path=os.path.join(dataset_path,'processed',seq)
 
     #input paths
     trajectory_mask_path=os.path.join(seq_path,'autolabels/pre_processing/trajectory_masks')

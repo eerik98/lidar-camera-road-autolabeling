@@ -48,10 +48,10 @@ def crf_post_processing(
 
 def main():
 
-    day=sys.argv[1]
-    seq=sys.argv[2]
+    #day=sys.argv[1]
+    seq=sys.argv[1]
 
-    with open('params_cadcd.yaml', 'r') as file:
+    with open('params_kitti360.yaml', 'r') as file:
         params = yaml.safe_load(file)
         config=params['post_processing']
         use_lidar_label=config['use_lidar_label']
@@ -59,7 +59,7 @@ def main():
         use_crf=config['use_crf']
         dataset_path=params['dataset_path']
 
-    seq_path=os.path.join(dataset_path,'processed',day,seq)
+    seq_path=os.path.join(dataset_path,'processed',seq)
 
     #inputs
     dino_label_path=os.path.join(seq_path,'autolabels/camera/labels')

@@ -173,27 +173,39 @@ def noise_filtering(
     Filters out noise points from the pointcloud
     """
 
-    xyzi=np.vstack(scan)
-    xyz=xyzi[:,:3]
+    # Flatten all points into a single array
+    xyzi = np.vstack(scan)
+    xyz = xyzi[:, :3]
+
+    # Create Open3D point cloud
     pcd = open3d.geometry.PointCloud()
     pcd.points = open3d.utility.Vector3dVector(xyz)
-    cl,ind=pcd.remove_statistical_outlier(nb_neighbors=nb_neighbors,std_ratio=std_ratio)
 
-    filtered_scans=[]
-    start_index=0
+    # Perform statistical outlier removal
+    _, ind = pcd.remove_statistical_outlier(nb_neighbors=nb_neighbors, std_ratio=std_ratio)
 
-    for ring in range(len(scan)):
-        scan_ring=scan[ring]
-        num_points=len(scan_ring)
-        if num_points==0:
-            filtered_scans.append(np.empty((0,4)))
+    # Convert `ind` to a set for fast lookup
+    ind_set = set(ind)
+
+    # Reorganize points back into scan rings
+    filtered_scans = []
+    start_index = 0
+
+    for ring in scan:
+        num_points = len(ring)
+        if num_points == 0:
+            # Empty scan ring remains empty
+            filtered_scans.append(np.empty((0, 3)))
         else:
-            mask=ind[start_index:start_index + num_points]
-            filtered_points = np.asarray(xyzi)[mask]
+            # Map indices back to this scan ring
+            ring_indices = range(start_index, start_index + num_points)
+            mask = [i in ind_set for i in ring_indices]
+            filtered_points = ring[np.array(mask)]
             filtered_scans.append(filtered_points)
-            start_index+=num_points
 
-    return np.array(filtered_scans,dtype=object)
+        start_index += num_points
+
+    return np.array(filtered_scans, dtype=object)
 
 
 def fov_filtering(
@@ -219,10 +231,10 @@ def fov_filtering(
 
 def main():
     
-    day=sys.argv[1]
-    seq=sys.argv[2]
+    #day=sys.argv[1]
+    seq=sys.argv[1]
 
-    with open('params_cadcd.yaml', 'r') as file:
+    with open('params_kitti360.yaml', 'r') as file:
         params = yaml.safe_load(file)
 
         crop_start=params['data_sampling']['crop_start']
@@ -242,11 +254,14 @@ def main():
         trajectory_length = config['trajectory_length']
         lidar_fov=config['lidar_fov']
 
-    camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_cadcd(dataset_path,day)
+    #camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_cadcd(dataset_path,day)
+    camera_matrix,extrinsics,gnss2lidar=utils.load_calib_kitti360(dataset_path)
+ 
     camera_matrix[1,2]=camera_matrix[1,2]-crop_start #add the effect off cropping
         
 
-    seq_path=os.path.join(dataset_path,'processed',day,seq)
+    #seq_path=os.path.join(dataset_path,'processed',day,seq)
+    seq_path=os.path.join(dataset_path,'processed',seq)
 
     #input paths
     pcd_path=os.path.join(seq_path,'data/scans')
@@ -266,12 +281,12 @@ def main():
     os.makedirs(trajectory_data_path,exist_ok=True)
     os.makedirs(filtered_scan_path,exist_ok=True)
 
-    poses=np.loadtxt(pose_path, delimiter=',',skiprows=1) 
+    poses=np.loadtxt(pose_path, delimiter=',',skiprows=0) 
     poses[:,0:2] = utils.latlon2utm(poses[:,0:2])
     pose_idx=np.loadtxt(pose_id_path,delimiter=',',dtype='int')
 
     for i in tqdm(range(len(pose_idx))):
-        
+
         #Read data
         current_pose_id=pose_idx[i]
         frame=cv2.imread(os.path.join(img_path,str(i)+'.png'))
@@ -283,26 +298,33 @@ def main():
 
         #Find future trajectory in scan
         future_poses=get_future_poses(poses.copy(),current_pose_id,trajectory_length,gnss2lidar)
+
         trajectory=closest_pcd_point(future_poses,scan,max_pcd2gnss_distance,height_threshold,distance_threshold,np.array(center))
 
         #Define wheel points in scan
         wheel_point_idx=wheel_contact_points(scan,trajectory,max_center2wheel_distance) 
         wheel_point_idx=occlusion_filtering(wheel_point_idx,scan,extrinsics,camera_matrix,occlusion_filter_pixel_threshold)
-        l_wheel_points=utils.ring_and_id2xyz(wheel_point_idx[:,[0,2]],scan) 
-        r_wheel_points=utils.ring_and_id2xyz(wheel_point_idx[:,[0,3]],scan)
-        wheel_points=np.concatenate((l_wheel_points,np.flip(r_wheel_points,axis=0)))
-        wheel_points=np.vstack([l_wheel_0,wheel_points,r_wheel_0])
 
-        #Define trajectory in image
-        image_points=utils.lidar_points_to_image(wheel_points,extrinsics,camera_matrix) # x,y
-        mask=utils.get_polygon_mask(image_points, image_shape=(frame.shape[0],frame.shape[1]))
+        if len(wheel_point_idx)==0:
+            mask=np.zeros((frame.shape[0],frame.shape[1]))
 
+        else:
+            wheel_point_idx=occlusion_filtering(wheel_point_idx,scan,extrinsics,camera_matrix,occlusion_filter_pixel_threshold)
+            l_wheel_points=utils.ring_and_id2xyz(wheel_point_idx[:,[0,2]],scan) 
+            r_wheel_points=utils.ring_and_id2xyz(wheel_point_idx[:,[0,3]],scan)
+            wheel_points=np.concatenate((l_wheel_points,np.flip(r_wheel_points,axis=0)))
+            wheel_points=np.vstack([l_wheel_0,wheel_points,r_wheel_0])
+
+            #Define trajectory in image
+            image_points=utils.lidar_points_to_image(wheel_points,extrinsics,camera_matrix) # x,y
+            mask=utils.get_polygon_mask(image_points, image_shape=(frame.shape[0],frame.shape[1]))
+        
         #Visualize
-        #utils.visualize_pcd(scan,wheel_point_idx) #uncomment if you want to visualize the trajecotry in the pointcloud
+        utils.visualize_pcd(scan,wheel_point_idx,future_poses) #uncomment if you want to visualize the trajecotry in the pointcloud
 
         #Save outputs
         overlaid_mask=utils.overlay_mask(frame,mask)
-        np.savetxt(os.path.join(trajectory_data_path,str(i)+'.csv'),wheel_point_idx,delimiter=',',fmt='%d, %d,%d,%d')
+        np.savetxt(os.path.join(trajectory_data_path,str(i)+'.csv'),wheel_point_idx,delimiter=',',fmt='%d')#,fmt='%d, %d,%d,%d')
         cv2.imwrite(os.path.join(mask_path,str(i)+'.png'),(mask.astype('uint8'))*255)
         cv2.imwrite(os.path.join(mask_overlaid_path,str(i)+'.png'),overlaid_mask)
         np.save(os.path.join(filtered_scan_path,str(i)+'.npy'),scan)

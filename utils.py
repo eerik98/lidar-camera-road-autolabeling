@@ -8,6 +8,47 @@ from matplotlib.colors import LinearSegmentedColormap
 import os
 import yaml
 from typing import Tuple
+import matplotlib.pyplot as plt 
+
+
+def load_calib_kitti360(dataset_path):
+
+    gnss2lidar=np.array([[0,1,0,0],
+                         [-1,0,0,0],
+                         [0,0,1,0],
+                         [0,0,0,1]])
+
+
+    lastrow = np.array([0,0,0,1]).reshape(1,4)
+
+    cam_to_velo=np.loadtxt(os.path.join(dataset_path,'raw','calibration','calib_cam_to_velo.txt')).reshape((3,4))
+    cam_to_velo=np.concatenate((cam_to_velo, lastrow))
+    extrinsics=np.linalg.inv(cam_to_velo)
+
+    with open(os.path.join(dataset_path,'raw','calibration','calib_cam_to_pose.txt')) as f:
+        for line in f:
+            line = line.split(' ')
+            if line[0] == 'image_00:':
+                cam_to_pose = [float(x) for x in line[1:13]]
+                cam_to_pose = np.reshape(cam_to_pose, [3,4])
+                cam_to_pose=np.concatenate((cam_to_pose,lastrow))
+                gnss2lidar=cam_to_velo@(np.linalg.inv(cam_to_pose))
+
+
+    with open(os.path.join(dataset_path,'raw','calibration','perspective.txt')) as f:
+        for line in f:
+            line = line.split(' ')
+            if line[0] == 'P_rect_00:':
+                K = [float(x) for x in line[1:13]]             
+                K = np.reshape(K, [3,4])
+                camera_matrix = K[:,[0,1,2]] # lets use 3x3 camera matrix
+
+    gnss2lidar=np.array([[0,1,0,0],
+                         [-1,0,0,0],
+                         [0,0,1,0],
+                         [0,0,0,1]])
+
+    return camera_matrix,extrinsics,gnss2lidar
 
 
 def load_calib_own_data(
@@ -75,7 +116,7 @@ def take_following_N_m(
     """
     distDriven=0
     for idx in range(len(gnss)-1):
-        distDriven=distDriven+np.linalg.norm(gnss[idx]-gnss[idx+1])
+        distDriven=distDriven+np.linalg.norm(gnss[idx+1]-gnss[idx])
         if distDriven>N:
             return idx
     return False
@@ -212,23 +253,41 @@ def nanmean(
 
 def visualize_pcd(
     scan: np.ndarray,           #shape: (number of rings,). Pointcloud organized to scan rings. Each element contains list of points in that scan ring.
-    wheel_point_idx: np.ndarray #shape: (number of trajectory points,4). Ring,center,left wheel and right wheel if for each trajectory point
+    wheel_point_idx: np.ndarray, #shape: (number of trajectory points,4). Ring,center,left wheel and right wheel if for each trajectory point
+    future_poses: np.ndarray
 ) ->None:
     
     """
     visualize the pointcloud with trajectory and wheel points.     
     """
 
-    # Convert numpy arrays to Open3D point clouds
-    pcd = open3d.geometry.PointCloud()
-    pcd.points = open3d.utility.Vector3dVector(np.vstack(scan)[:,:3])
+    # Create an empty list to store the point clouds for each scan ring
+    geometries = []
 
-    # Create a geometry list to hold all geometries
-    geometries = [pcd]
 
+    # Loop through each scan ring
+    for i, ring in enumerate(scan):
+
+        # Convert each scan ring to an Open3D point cloud
+        pcd = open3d.geometry.PointCloud()
+        pcd.points = open3d.utility.Vector3dVector(ring[:, :3])  # Set points for the current scan ring
+
+        if i % 3 == 0:
+            color=[1,0,0]
+        if i % 3 == 1: 
+            color=[0,1,0]
+        if i % 3 == 2:
+            color=[0,0,1]
+
+        pcd.colors = open3d.utility.Vector3dVector(np.tile(color, (ring.shape[0], 1)))  # Set the color for all points in this ring
+
+        # Add the colored point cloud to the geometries list
+        geometries.append(pcd)
+
+ 
     # Convert each point in cloud2 to a red sphere and add to the geometry list
     for (ring,center,left,right) in wheel_point_idx:
-
+        
         #add left wheel
         sphere = open3d.geometry.TriangleMesh.create_sphere(radius=0.3)
         sphere.paint_uniform_color([0, 1, 0])  # Set color to green
@@ -246,7 +305,11 @@ def visualize_pcd(
         sphere.paint_uniform_color([0, 1, 0])  # Set color to green
         sphere.translate(scan[ring][right][:3])
         geometries.append(sphere)
-
+    
+    poses = open3d.geometry.PointCloud()
+    poses.points = open3d.utility.Vector3dVector(np.hstack((future_poses[:,:2],np.zeros((len(future_poses),1)))))
+    geometries.append(poses)
+        
     # Set visualization parameters
     visualizer = open3d.visualization.Visualizer()
     visualizer.create_window()
@@ -254,7 +317,7 @@ def visualize_pcd(
     # Add sphere geometries to the visualization
     for geometry in geometries:
         visualizer.add_geometry(geometry)
-    
+
     visualizer.run()
     visualizer.destroy_window()
 

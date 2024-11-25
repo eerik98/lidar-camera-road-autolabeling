@@ -90,6 +90,8 @@ def get_gradient_score(
             between_wheels_max_diff=0
         else:
             between_wheels_max_diff=(diff[between_wheels]).max()
+        
+        #between_wheels_max_diff=0.01
 
         diff[(diff<between_wheels_max_diff)]=0
 
@@ -130,10 +132,10 @@ def interpolate(
 
 def main():
 
-    day=sys.argv[1]
-    seq=sys.argv[2]
+    #day=sys.argv[1]
+    seq=sys.argv[1]
 
-    with open('params_cadcd.yaml', 'r') as file:
+    with open('params_kitti360.yaml', 'r') as file:
         params = yaml.safe_load(file)
         crop_start=params['data_sampling']['crop_start']
         l_wheel_0=params['origin']['l_wheel_scan_loc']
@@ -147,13 +149,14 @@ def main():
         use_slope=config['use_slope']
         max_radial_dist=config['max_radial_dist']
 
-    camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_cadcd(dataset_path,day)
+    #camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_cadcd(dataset_path,day)
+    camera_matrix,extrinsics,gnss2lidar=utils.load_calib_kitti360(dataset_path)
     camera_matrix[1,2]=camera_matrix[1,2]-crop_start #add the effect off cropping
 
     l_wheel_img_location=utils.lidar_points_to_image(np.array(l_wheel_0).reshape(1,-1),extrinsics,camera_matrix).flatten() 
     r_wheel_img_location=utils.lidar_points_to_image(np.array(r_wheel_0).reshape(1,-1),extrinsics,camera_matrix).flatten()
 
-    seq_path=os.path.join(dataset_path,'processed',day,seq)
+    seq_path=os.path.join(dataset_path,'processed',seq)
 
     #input paths
     scan_path=os.path.join(seq_path,'autolabels/pre_processing/filtered_scans')
@@ -175,7 +178,7 @@ def main():
         #Read data
         scan=np.load(os.path.join(scan_path,str(data_id)+'.npy'),allow_pickle=True)
         frame=cv2.imread(os.path.join(img_path,str(data_id)+'.png'))
-        trajectory_data = np.loadtxt(os.path.join(trajectory_path,str(data_id)+'.csv'), delimiter=',',dtype='int')
+        trajectory_data = np.loadtxt(os.path.join(trajectory_path,str(data_id)+'.csv'), delimiter=',',dtype='int').reshape(-1,4)
 
         #Check if enough trajectory points
         if len(trajectory_data)<2:
