@@ -40,9 +40,9 @@ Place all the data folders in a folder named raw. The path to the images should 
 Run the sampling script.
 ```
 python3 sample_cadcd.py <sequence> <parameter file> #for sampling cadcd
-python3 sample_cadcd.py '2019_02_27/0002' 'params_cadcd.yaml' # cadcd example
+python3 sample_cadcd.py '2019_02_27/0006' 'params_cadcd.yaml' # cadcd example
 python3 sample_kitti360.py <sequence> <parameter file> #for sampling kitti360
-python3 sample_kitti360.py '2013_05_28_drive_0000' 'params_kitti360.yaml' # kitti360 example
+python3 sample_kitti360.py '2013_05_28_drive_0007' 'params_kitti360.yaml' # kitti360 example
 ```
 The sampled data is saved under `<dataset_path>/processed/<sequence>/data`.
 
@@ -51,8 +51,8 @@ The sampled data is saved under `<dataset_path>/processed/<sequence>/data`.
 Run the pre-processing script:
 ```
 python3 pre_processing.py <sequence> <parameter file>
-python3 pre_processing.py '2019_02_27/0002' 'params_cadcd.yaml' # cadcd example
-python3 pre_processing.py '2013_05_28_drive_0000' 'params_kitti360.yaml' #kitti360 example
+python3 pre_processing.py '2019_02_27/0006' 'params_cadcd.yaml' # cadcd example
+python3 pre_processing.py '2013_05_28_drive_0007' 'params_kitti360.yaml' #kitti360 example
 ```
 The outputs are saved under `<dataset_path>/processed/<sequence>/autolabels/pre_processing`.
 
@@ -64,8 +64,8 @@ The outputs are saved under `<dataset_path>/processed/<sequence>/autolabels/pre_
 Run the lidar-autolabeling script:
 ```
 python3 lidar_autolabeling.py <sequence> <parameter file>
-python3 lidar_autolabeling.py '2019_02_27/0002' 'params_cadcd.yaml' # cadcd example
-python3 lidar_autolabeling.py '2013_05_28_drive_0000' 'params_kitti360.yaml' #kitti360 example
+python3 lidar_autolabeling.py '2019_02_27/0006' 'params_cadcd.yaml' # cadcd example
+python3 lidar_autolabeling.py '2013_05_28_drive_0007' 'params_kitti360.yaml' #kitti360 example
 ```
 The outputs are saved under `<dataset_path>/processed/<sequence>/autolabels/lidar`.
 
@@ -76,8 +76,8 @@ The outputs are saved under `<dataset_path>/processed/<sequence>/autolabels/lida
 Run the visual autolabeling script:
 ```
 python3 camera_autolabeling.py <sequence> <parameter file>
-python3 camera_autolabeling.py '2019_02_27/0002' 'params_cadcd.yaml' # cadcd example
-python3 camera_autolabeling.py '2013_05_28_drive_0000' 'params_kitti360.yaml' #kitti360 example
+python3 camera_autolabeling.py '2019_02_27/0006' 'params_cadcd.yaml' # cadcd example
+python3 camera_autolabeling.py '2013_05_28_drive_0007' 'params_kitti360.yaml' #kitti360 example
 ```
 The outputs are saved under `<dataset_path>/processed/<sequence>/autolabels/camera`.
 
@@ -88,8 +88,8 @@ The outputs are saved under `<dataset_path>/processed/<sequence>/autolabels/came
 Run the post-processing script:
 ```
 python3 post_processing.py <sequence> <parameter file>
-python3 post_processing.py '2019_02_27/0002' 'params_cadcd.yaml' # cadcd example
-python3 post_processing.py '2013_05_28_drive_0000' 'params_kitti360.yaml' #kitti360 example
+python3 post_processing.py '2019_02_27/0006' 'params_cadcd.yaml' # cadcd example
+python3 post_processing.py '2013_05_28_drive_0007' 'params_kitti360.yaml' #kitti360 example
 ```
 The outputs are saved under `<dataset_path>/processed/<sequence>/autolabels/post_processing`.
 
@@ -100,7 +100,7 @@ The outputs are saved under `<dataset_path>/processed/<sequence>/autolabels/post
 Run the evaluation script:
 ```
 python3 evaluate_kitti360.py <sequence> <parameter file>
-python3 evaluate_kitti360.py '2013_05_28_drive_0000' 'params_kitti360.yaml' #kitti360 example
+python3 evaluate_kitti360.py '2013_05_28_drive_0007' 'params_kitti360.yaml' #kitti360 example
 ```
 Performance metrics are printed to the terminal. 
 
