@@ -30,7 +30,7 @@ Download the CADCD raw dataset.[`Homepage`](http://cadcd.uwaterloo.ca) [`Devkit`
 When using the download script provided in the Devkit the folder structure doesn't need to be modified. 
 
 #### KITTI-360:
-Download the KITTI360 dataset. [`Homepage`](https://www.cvlibs.net/datasets/kitti-360/). Our method requires downloading: Calibrations, OXTS sync measurements, Raw Velodyne scans, Left Perspective images (image_00), and Semantics of Left Perspective camera (For validation purposes).   
+Download the KITTI360 dataset. [`Homepage`](https://www.cvlibs.net/datasets/kitti-360/). Our method requires downloading: calibrations, OXTS sync measurements, raw velodyne scans, left perspective images (image_00), and semantics of left perspective camera (for validation purposes).   
 
 Place all the data folders in a folder named raw. The path to the images should then be `<dataset_path>/raw/data_2d_raw`, to scans `<dataset_path>/raw/data_3d_raw`, to OXTS `<dataset_path>/raw/data_poses_oxts`, calibrations `<dataset_path>/raw/calibration` and semantics `<dataset_path>/raw/data_2d_semantics`
 
