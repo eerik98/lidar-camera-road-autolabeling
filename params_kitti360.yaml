@@ -2,15 +2,15 @@
 
 dataset_path: '/home/eerik/DATA/KITTI-360'
 
-origin: #location of the front wheels and center in lidar coords. #computed based on https://www.cvlibs.net/datasets/kitti-360/documentation.php
-  l_wheel_scan_loc: [1.9, 1, -1.73]
+origin: #location of the front wheels and their center in lidar coords. #computed based on https://www.cvlibs.net/datasets/kitti-360/documentation.php
+  l_wheel_scan_loc: [1.9, 0.8, -1.73]
   center_scan_loc: [1.9, 0, -1.73]
-  r_wheel_scan_loc: [1.9, -1, -1.73]
+  r_wheel_scan_loc: [1.9, -0.8, -1.73]
 
 data_sampling:
   crop_start: 0
   crop_end: -1
-  dist_between_samples: 5
+  dist_between_samples: 50
 
 pre_processing:
   lidar_fov: 120
@@ -26,7 +26,7 @@ pre_processing:
 lidar_auto_labeling:
   max_radial_dist: 5
   use_height: True
-  use_slope: False
+  use_slope: True
   slope_label_std: 0.05 #0.05
   height_label_std: 0.1 
  
@@ -37,5 +37,5 @@ camera_auto_labeling:
 
 post_processing:
   use_lidar_label: True
-  use_camera_label: False
-  use_crf: False
+  use_camera_label: True
+  use_crf: True

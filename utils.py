@@ -11,13 +11,13 @@ from typing import Tuple
 import matplotlib.pyplot as plt 
 
 
-def load_calib_kitti360(dataset_path):
-
-    gnss2lidar=np.array([[0,1,0,0],
-                         [-1,0,0,0],
-                         [0,0,1,0],
-                         [0,0,0,1]])
-
+def load_calib_kitti360(
+    dataset_path:str        #path to the dataset root 
+) ->Tuple[np.ndarray,...]:  #calibration params as numpy arrays
+    
+    """
+    Fetches calibration data for kitti360
+    """
 
     lastrow = np.array([0,0,0,1]).reshape(1,4)
 
@@ -33,7 +33,8 @@ def load_calib_kitti360(dataset_path):
                 cam_to_pose = np.reshape(cam_to_pose, [3,4])
                 cam_to_pose=np.concatenate((cam_to_pose,lastrow))
                 gnss2lidar=cam_to_velo@(np.linalg.inv(cam_to_pose))
-
+                gnss2lidar=gnss2lidar@np.array([[0,1,0,0],[1,0,0,0],[0,0,1,0],[0,0,0,1]]) #we assume gnss coordinates have y-forward, x-right similarly to cadcd. 
+                gnss2lidar=gnss2lidar[[0, 1, 3], :][:, [0, 1, 3]] #we only consider x,y in this transform
 
     with open(os.path.join(dataset_path,'raw','calibration','perspective.txt')) as f:
         for line in f:
@@ -42,11 +43,6 @@ def load_calib_kitti360(dataset_path):
                 K = [float(x) for x in line[1:13]]             
                 K = np.reshape(K, [3,4])
                 camera_matrix = K[:,[0,1,2]] # lets use 3x3 camera matrix
-
-    gnss2lidar=np.array([[0,1,0,0],
-                         [-1,0,0,0],
-                         [0,0,1,0],
-                         [0,0,0,1]])
 
     return camera_matrix,extrinsics,gnss2lidar
 
@@ -66,6 +62,7 @@ def load_calib_own_data(
     dist_coeffs=read_matrix_from_dict(calib['dist_coeffs'])
     extrinsics=read_matrix_from_dict(calib['extrinsics'])
     gnss2lidar=read_matrix_from_dict(calib['gnss2lidar'])
+    gnss2lidar=gnss2lidar[[0, 1, 3], :][:, [0, 1, 3]] # we only consider x,y in this transform
 
     return camera_matrix,extrinsics,dist_coeffs,gnss2lidar
 
@@ -88,7 +85,8 @@ def load_calib_cadcd(
         ext_calib=yaml.safe_load(file)
         extrinsics=np.linalg.inv(np.array(ext_calib['T_LIDAR_CAM00']))
         gnss2lidar=np.array(ext_calib['T_LIDAR_GPSIMU'])
-    
+        gnss2lidar=gnss2lidar[[0, 1, 3], :][:, [0, 1, 3]] # we only consider x,y in this transform
+
     return camera_matrix,extrinsics,dist_coeffs,gnss2lidar
 
 
@@ -252,9 +250,9 @@ def nanmean(
     return result
 
 def visualize_pcd(
-    scan: np.ndarray,           #shape: (number of rings,). Pointcloud organized to scan rings. Each element contains list of points in that scan ring.
+    scan: np.ndarray,            #shape: (number of rings,). Pointcloud organized to scan rings. Each element contains list of points in that scan ring.
     wheel_point_idx: np.ndarray, #shape: (number of trajectory points,4). Ring,center,left wheel and right wheel if for each trajectory point
-    future_poses: np.ndarray
+    future_poses: np.ndarray     #shape: (number of poses,2). x,y for each pose given in the lidar frame. 
 ) ->None:
     
     """
@@ -285,7 +283,7 @@ def visualize_pcd(
         geometries.append(pcd)
 
  
-    # Convert each point in cloud2 to a red sphere and add to the geometry list
+    # Loop through trajectory points of each ring
     for (ring,center,left,right) in wheel_point_idx:
         
         #add left wheel
@@ -307,7 +305,8 @@ def visualize_pcd(
         geometries.append(sphere)
     
     poses = open3d.geometry.PointCloud()
-    poses.points = open3d.utility.Vector3dVector(np.hstack((future_poses[:,:2],np.zeros((len(future_poses),1)))))
+    poses.points = open3d.utility.Vector3dVector(np.hstack((future_poses,np.zeros((len(future_poses),1)))))
+    poses.colors = open3d.utility.Vector3dVector(np.ones((len(future_poses), 3)) * np.array([0, 1, 0]))
     geometries.append(poses)
         
     # Set visualization parameters

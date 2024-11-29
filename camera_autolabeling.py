@@ -53,10 +53,10 @@ def cosine_similarity_score(
 
 def main():
 
-    #day=sys.argv[1]
     seq=sys.argv[1]
+    param_file=sys.argv[2]
 
-    with open('params_kitti360.yaml', 'r') as file:
+    with open(param_file, 'r') as file:
         params = yaml.safe_load(file)
         config=params['camera_auto_labeling']
         scale=config['img_scale']
@@ -90,7 +90,7 @@ def main():
     img_transform=T.Compose([T.ToTensor(),T.Resize((H_dino_in,W_dino_in)),T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))]) #IMAGENET MEAN AND STD (As recommended by dinov2 authors)
     mask_transfrom=T.Compose([T.ToTensor(),T.Resize((H_dino_in//14,W_dino_in//14))])
 
-    num_files = len(os.listdir(img_path))
+    num_files = len(os.listdir(trajectory_mask_path))
     prev_mean_feature=None
     
     for data_id in tqdm(range(num_files)):
@@ -122,4 +122,6 @@ def main():
         overlaid=utils.overlay_heatmap(frame,score/255)
         cv2.imwrite(os.path.join(auto_label_path,str(data_id)+'.png'),label)
         cv2.imwrite(os.path.join(auto_label_overlaid_path,str(data_id)+'.png'),overlaid)
-main()
+
+if __name__=="__main__": 
+    main()

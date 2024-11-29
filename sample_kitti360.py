@@ -12,7 +12,7 @@ from datetime import datetime
 
 def combine_pose_files(
     input_dir: str  #path to directory containing pose csv files
-) ->np.ndarray:     # shape (number of poses,4). lat,lon,z,azimuth for each pose
+) ->np.ndarray:     # shape (number of poses,3). lat,lon,azimuth for each pose
     
     """
     Combines poses from diffefent files to single array
@@ -26,11 +26,10 @@ def combine_pose_files(
             i-=1
             file=str(i).zfill(10)+'.txt'
         poses=np.loadtxt(os.path.join(input_dir,file),delimiter=' ',dtype='float')
-        poses=poses[[0,1,2,5]]
-        poses[-1]=90-np.rad2deg(poses[-1]) #change to azimuth
+        poses=poses[[0,1,5]]
+        poses[-1]= 90-np.rad2deg(poses[-1]) #change to azimuth
         combined_poses.append(poses)
     return np.array(combined_poses)
-
 
 
 def get_quadrant(
@@ -76,7 +75,7 @@ def separate_scan_rings(
 
     for i in range(64):
         if len(grouped_coords[i])==0:
-            grouped_coords[i]=np.empty(3)
+            grouped_coords[i].append(np.empty(3))
         grouped_coords[i] = np.array(grouped_coords[i])
     
     grouped_coords=np.array(grouped_coords,dtype='object')
@@ -86,9 +85,10 @@ def separate_scan_rings(
 def main():
 
     seq=sys.argv[1]
+    param_file=sys.argv[2]
 
     #read sampling params
-    with open('params_kitti360.yaml') as file:
+    with open(param_file) as file:
         params=yaml.safe_load(file)
         config=params['data_sampling']
         dataset_path=params['dataset_path']
@@ -104,7 +104,7 @@ def main():
     input_camera_path=os.path.join(dataset_path,'raw','data_2d_raw',seq+'_sync','image_00','data_rect')
 
 
-    GT_label_path=os.path.join(dataset_path,'data_2d_semantics','train',seq+'_sync','image_00','semantic_rgb')
+    GT_label_path=os.path.join(dataset_path,'raw','data_2d_semantics','train',seq+'_sync','image_00','semantic_rgb')
 
     #Output paths
     output_pcd_path=os.path.join(output_path,'scans')
@@ -122,48 +122,50 @@ def main():
     os.makedirs(output_camera_path,exist_ok=True)
 
 
-    gnss_ids=[]
     gnss_id=0
     data_id=0
     gnss_data[:,0:2] = utils.latlon2utm(gnss_data[:,0:2])
 
-    while True:
 
-        #check if GT label is available. If not incrase by one until found.
-        GT_label=False
-        while not GT_label:
-            if gnss_id>=len(gnss_data):
+    # we want to cleanly exit if the user stops execution with keyboard interrupt
+    with open(output_gnss_id_path,'w') as file:
+
+        while True:
+
+            #check if GT label is available. If not incrase by one until found.
+            GT_label=False
+            while not GT_label:
+                if gnss_id>=len(gnss_data):
+                    break
+
+                if os.path.exists(os.path.join(GT_label_path,str(gnss_id).zfill(10)+'.png')):
+                    GT_label=True
+                else:
+                    gnss_id += 1
+
+            # If pose data for 100 following meters doesnt exist exit
+            if not utils.take_following_N_m(gnss_data[gnss_id:,:2],trajectory_length):
+                print("Exiting")
                 break
+            
+            file.write(str(gnss_id)+'\n')
 
-            if os.path.exists(os.path.join(GT_label_path,str(gnss_id).zfill(10)+'.png')):
-                GT_label=True
-            else:
-                gnss_id += 1
+            # Read lidar scan corresponding to the current gnss_id and separate scan rings based on polar angle
+            scan_data = np.fromfile(os.path.join(input_pcd_path,str(gnss_id).zfill(10)+'.bin'), dtype=np.float32)
+            scan_data = scan_data.reshape((-1, 4))[:,:3]
+            scan_rings=separate_scan_rings(scan_data)
+            np.save(os.path.join(output_pcd_path,str(data_id)+'.npy'),scan_rings)
 
-        # If pose data for 100 following meters doesnt exist exit
-        if not utils.take_following_N_m(gnss_data[gnss_id:,:2],trajectory_length):
-            print("Exiting")
-            break
+            # Copy the image corresponding to the current gnss_id
+            shutil.copy(os.path.join(input_camera_path,str(gnss_id).zfill(10)+'.png'),os.path.join(output_camera_path,str(data_id)+'.png'))
 
-        # Read lidar scan corresponding to the current gnss_id and separate scan rings based on polar angle
-        scan_data = np.fromfile(os.path.join(input_pcd_path,str(gnss_id).zfill(10)+'.bin'), dtype=np.float32)
-        scan_data = scan_data.reshape((-1, 4))[:,:3]
-        scan_rings=separate_scan_rings(scan_data)
-        np.save(os.path.join(output_pcd_path,str(data_id)+'.npy'),scan_rings)
+            gnss_id=gnss_id+max(1,utils.take_following_N_m(gnss_data[gnss_id:],dist_between_samples)) #in every case increase at least by one
 
-        # Copy the image corresponding to the current gnss_id
-        shutil.copy(os.path.join(input_camera_path,str(gnss_id).zfill(10)+'.png'),os.path.join(output_camera_path,str(data_id)+'.png'))
+            data_id+=1
 
-        # Append the current pose id and compute the next one
-        gnss_ids.append(gnss_id)
-        gnss_id=gnss_id+max(1,utils.take_following_N_m(gnss_data[gnss_id:],dist_between_samples)) #in every case increase at least by one
-
-        data_id+=1
-
-    # Save the pose ids
-    np.savetxt(output_gnss_id_path,gnss_ids,fmt='%d')
         
-main()
+if __name__=="__main__": 
+    main()
 
 
 

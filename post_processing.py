@@ -48,10 +48,10 @@ def crf_post_processing(
 
 def main():
 
-    #day=sys.argv[1]
     seq=sys.argv[1]
+    param_file=sys.argv[2]
 
-    with open('params_kitti360.yaml', 'r') as file:
+    with open(param_file, 'r') as file:
         params = yaml.safe_load(file)
         config=params['post_processing']
         use_lidar_label=config['use_lidar_label']
@@ -109,4 +109,6 @@ def main():
         overlaid=utils.overlay_mask(frame,bin_label)
         cv2.imwrite(os.path.join(label_overlaid_path,str(data_id)+'.png'),overlaid)
         cv2.imwrite(os.path.join(label_path,str(data_id)+'.png'),(bin_label.astype('uint8'))*255)
-main()
+        
+if __name__=="__main__": 
+    main()

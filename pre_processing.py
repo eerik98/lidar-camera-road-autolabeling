@@ -9,29 +9,32 @@ from tqdm import tqdm
 import sys
 
 def ENU2Lidar(
-    ENU_poses: np.ndarray,  #shape: (number of poses, 4). x,y,z and azimuth in ENU frame for each pose. 
-    gnss2lidar: np.ndarray  #shape: (4,4). Trasformation between GPS and Lidar frame. 
-) ->np.ndarray:             #shape: (number of poses,4). x,y,z and orientation in Lidar frame for each pose.
+    ENU_poses: np.ndarray,  #shape: (number of poses, 3). x,y and azimuth in ENU frame for each pose. 
+    gnss2lidar: np.ndarray  #shape: (3,3). Trasformation between GPS and Lidar frame for x and y coords.  
+) ->np.ndarray:             #shape: (number of poses,3). x,y and orientation in Lidar frame for each pose.
     
     """
     Transform ENU poses to the Lidar frame.
     """
 
     #change x and y coords to the GPSIMU frame at the time scan is taken
-    azimuth=ENU_poses[0,3]
-    #azimuth is clockwise angle from North (y). Lets rotate all x,y coordinates counter-clockwise by first azimuth the get coordinates w.r.t the GPS frame at the time scan was taken
+    azimuth=ENU_poses[0,2]
+    #azimuth is clockwise angle from North. Lets rotate all x,y coordinates counter-clockwise by first azimuth the get coordinates w.r.t the GPS frame at the time scan was taken
     angle_rad=np.deg2rad(azimuth) 
     rotation_matrix = np.array([[np.cos(angle_rad), -np.sin(angle_rad)],
                                 [np.sin(angle_rad), np.cos(angle_rad)]])
-    ENU_poses[:,0:2] = np.dot(ENU_poses[:,0:2], rotation_matrix.T)
-    homogeneus_xyz=np.hstack((ENU_poses[:,:3],np.ones((ENU_poses.shape[0], 1))))
-    lidar_frame_xyz=(homogeneus_xyz@gnss2lidar.T)[:,:3]
-    lidar_frame_orientation=azimuth-ENU_poses[:,3]
-    lidar_frame_coords=np.hstack((lidar_frame_xyz,lidar_frame_orientation.reshape(-1,1)))
+    
+    ENU_poses[:,:2] = np.dot(ENU_poses[:,:2], rotation_matrix.T)
+    homogeneus_xy=np.hstack((ENU_poses[:,:2],np.ones((ENU_poses.shape[0], 1))))
+
+    lidar_frame_xy=(homogeneus_xy@(gnss2lidar.T))[:,:2]
+
+    lidar_frame_orientation=azimuth-ENU_poses[:,2]
+    lidar_frame_coords=np.hstack((lidar_frame_xy,lidar_frame_orientation.reshape(-1,1)))
     return lidar_frame_coords
 
 def closest_pcd_point(
-    poses: np.ndarray,              #shape: (number of poses,4). x,y,z and heading for for each pose. 
+    poses: np.ndarray,              #shape: (number of poses,3). x,y and heading for for each pose. 
     scan: np.ndarray,               #shape: (number of rings,). Pointcloud organized to scan rings. Each element contains list of points in that scan ring.
     max_scan2pose_distance: float,  #maximum allowed distance between scan point and pose to create a match
     height_threshold: float,        #maximum allowed heigth difference between trajectory points in consecutive scan rings
@@ -61,7 +64,7 @@ def closest_pcd_point(
         gnss_id=closest_idx[1]
 
         if min_distance<max_scan2pose_distance:
-           trajectory.append([ring,scan_id,poses[gnss_id,3]])
+           trajectory.append([ring,scan_id,poses[gnss_id,2]])
            prev_point=ring_points[scan_id]
 
     return trajectory
@@ -114,9 +117,10 @@ def get_future_poses(
     Finds the poses in lidar frame for the future trajectory
     """
     poses=ENU_poses[pose_id:]
-    poses[:,0:2]=poses[:,0:2]-poses[0,0:2] #shift origin
+    poses[:,:2]=poses[:,:2]-poses[0,:2] #shift origin
     limit=utils.take_following_N_m(poses[:,:2],trajectory_length)
     poses=poses[:limit]
+
     poses_at_lidar_frame=ENU2Lidar(poses,gnss2lidar)
 
     return poses_at_lidar_frame
@@ -177,27 +181,20 @@ def noise_filtering(
     xyzi = np.vstack(scan)
     xyz = xyzi[:, :3]
 
-    # Create Open3D point cloud
+    # Perform statistical outlier removal
     pcd = open3d.geometry.PointCloud()
     pcd.points = open3d.utility.Vector3dVector(xyz)
-
-    # Perform statistical outlier removal
     _, ind = pcd.remove_statistical_outlier(nb_neighbors=nb_neighbors, std_ratio=std_ratio)
-
-    # Convert `ind` to a set for fast lookup
     ind_set = set(ind)
 
-    # Reorganize points back into scan rings
     filtered_scans = []
     start_index = 0
 
     for ring in scan:
         num_points = len(ring)
         if num_points == 0:
-            # Empty scan ring remains empty
             filtered_scans.append(np.empty((0, 3)))
         else:
-            # Map indices back to this scan ring
             ring_indices = range(start_index, start_index + num_points)
             mask = [i in ind_set for i in ring_indices]
             filtered_points = ring[np.array(mask)]
@@ -231,10 +228,10 @@ def fov_filtering(
 
 def main():
     
-    #day=sys.argv[1]
     seq=sys.argv[1]
+    param_file=sys.argv[2]
 
-    with open('params_kitti360.yaml', 'r') as file:
+    with open(param_file, 'r') as file:
         params = yaml.safe_load(file)
 
         crop_start=params['data_sampling']['crop_start']
@@ -254,13 +251,17 @@ def main():
         trajectory_length = config['trajectory_length']
         lidar_fov=config['lidar_fov']
 
-    #camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_cadcd(dataset_path,day)
-    camera_matrix,extrinsics,gnss2lidar=utils.load_calib_kitti360(dataset_path)
- 
-    camera_matrix[1,2]=camera_matrix[1,2]-crop_start #add the effect off cropping
-        
+    if param_file=='params_cadcd.yaml':
+        day=seq.split('/')[0]
+        camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_cadcd(dataset_path,day)
+    if param_file=='params_kitti360.yaml':
+        camera_matrix,extrinsics,gnss2lidar=utils.load_calib_kitti360(dataset_path)
+    if param_file=='params_own_data.yaml':
+        day=seq.split('/')[0]
+        camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_own_data(dataset_path,day)
 
-    #seq_path=os.path.join(dataset_path,'processed',day,seq)
+
+    camera_matrix[1,2]=camera_matrix[1,2]-crop_start #add the effect off cropping
     seq_path=os.path.join(dataset_path,'processed',seq)
 
     #input paths
@@ -282,7 +283,7 @@ def main():
     os.makedirs(filtered_scan_path,exist_ok=True)
 
     poses=np.loadtxt(pose_path, delimiter=',',skiprows=0) 
-    poses[:,0:2] = utils.latlon2utm(poses[:,0:2])
+    poses[:,:2] = utils.latlon2utm(poses[:,:2])
     pose_idx=np.loadtxt(pose_id_path,delimiter=',',dtype='int')
 
     for i in tqdm(range(len(pose_idx))):
@@ -320,7 +321,7 @@ def main():
             mask=utils.get_polygon_mask(image_points, image_shape=(frame.shape[0],frame.shape[1]))
         
         #Visualize
-        utils.visualize_pcd(scan,wheel_point_idx,future_poses) #uncomment if you want to visualize the trajecotry in the pointcloud
+        #utils.visualize_pcd(scan,wheel_point_idx,future_poses[:,:2]) #uncomment if you want to visualize the trajecotry in the pointcloud
 
         #Save outputs
         overlaid_mask=utils.overlay_mask(frame,mask)

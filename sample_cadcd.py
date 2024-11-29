@@ -23,7 +23,7 @@ def combine_pose_files(
     for i in range(num_files):
         file=str(i).zfill(10)+'.txt'
         poses=np.loadtxt(os.path.join(input_dir,file),delimiter=' ',dtype='float')
-        poses=poses[[0,1,2,9]]
+        poses=poses[[0,1,9]]
         combined_poses.append(poses)
     return np.array(combined_poses)
 
@@ -91,7 +91,7 @@ def separate_scan_rings(
         closest_ref = np.argmin([abs(angle - ref) for ref in reference_values])  # Find the reference value that is closest to the current angle
         grouped_coords[closest_ref].append(cartesian_coords[i])   # Assign the angle to the corresponding reference group
 
-    grouped_coords=np.array(grouped_coords,dtype='object')
+
 
     # If scan ring has no values append empty(3) to it. This way it is easier to use the data (for example vstack)
     for i in range(32):
@@ -99,26 +99,31 @@ def separate_scan_rings(
             grouped_coords[i].append(np.empty(3))
         grouped_coords[i] = np.array(grouped_coords[i])
 
+    grouped_coords=np.array(grouped_coords,dtype='object')
+
     return grouped_coords
 
 
 def main():
 
-    day=sys.argv[1]
-    seq=sys.argv[2]
+    seq=sys.argv[1]
+    param_file=sys.argv[2]
 
     #read sampling params
-    with open('params_cadcd.yaml') as file:
+    with open(param_file) as file:
         params=yaml.safe_load(file)
         config=params['data_sampling']
         crop_start=config['crop_start']
         crop_end=config['crop_end']
         dataset_path=params['dataset_path']
+        dist_between_samples=config['dist_between_samples']
+        trajectory_length=params['pre_processing']['trajectory_length']
 
-    input_seq=os.path.join(dataset_path,'raw',day,seq,'raw')
-    output_path=os.path.join(dataset_path,'processed',day,seq,'data')
+    input_seq=os.path.join(dataset_path,'raw',seq,'raw')
+    output_path=os.path.join(dataset_path,'processed',seq,'data')
     os.makedirs(output_path,exist_ok=True)
 
+    day=seq.split('/')[0]
     camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_cadcd(dataset_path,day)
 
     #Input paths
@@ -147,41 +152,40 @@ def main():
     os.makedirs(output_img_path,exist_ok=True)
 
 
-    gnss_ids=[]
     gnss_id=0
     data_id=0
 
-    while True:
-        
-        # If pose data for 100 following meters doesnt exist exit
-        if not utils.take_following_N_m(gnss_data[gnss_id:,:2],100):
-            break
-        
-        # Find img id and pcd id corresponding to the pose id. 
-        img_id=utils.find_closest_index(camera_timestamps,gnss_timestamps[gnss_id])
-        pcd_id=utils.find_closest_index(pcd_timestamps,gnss_timestamps[gnss_id])
+    # we want to cleanly exit if the user stops execution with keyboard interrupt
+    with open(output_gnss_id_path,'w') as file:
+        while True:
+            
+            # If pose data for 100 following meters doesnt exist exit
+            if not utils.take_following_N_m(gnss_data[gnss_id:,:2],trajectory_length):
+                break
+                
+            file.write(str(gnss_id)+'\n')
 
-        # Read image and undistort
-        img=cv2.imread(os.path.join(input_camera_path,'data/'+str(img_id).zfill(10)+'.png'))
-        img=cv2.undistort(img,distCoeffs=dist_coeffs,cameraMatrix=camera_matrix)
-        img=img[crop_start:crop_end,:,:]     
-        cv2.imwrite(os.path.join(output_img_path,str(data_id)+'.png'),img)
-        
-        # Read lidar scan corresponding to the current gnss_id and separate scan rings based on polar angle
-        scan_data = np.fromfile(os.path.join(input_pcd_path,'data/'+str(pcd_id).zfill(10)+'.bin'), dtype=np.float32)
-        scan_data = scan_data.reshape((-1, 4))[:,:3]
-        scan_rings=separate_scan_rings(scan_data)
-        np.save(os.path.join(output_pcd_path,str(data_id)+'.npy'),scan_rings)
+            # Find img id and pcd id corresponding to the pose id. 
+            img_id=utils.find_closest_index(camera_timestamps,gnss_timestamps[gnss_id])
+            pcd_id=utils.find_closest_index(pcd_timestamps,gnss_timestamps[gnss_id])
 
-        # Append the current pose id and compute the next one
-        gnss_ids.append(gnss_id)
-        gnss_id=gnss_id+utils.take_following_N_m(gnss_data[gnss_id:],5)
-        data_id+=1
+            # Read image and undistort
+            img=cv2.imread(os.path.join(input_camera_path,'data/'+str(img_id).zfill(10)+'.png'))
+            img=cv2.undistort(img,distCoeffs=dist_coeffs,cameraMatrix=camera_matrix)
+            img=img[crop_start:crop_end,:,:]     
+            cv2.imwrite(os.path.join(output_img_path,str(data_id)+'.png'),img)
+            
+            # Read lidar scan corresponding to the current gnss_id and separate scan rings based on polar angle
+            scan_data = np.fromfile(os.path.join(input_pcd_path,'data/'+str(pcd_id).zfill(10)+'.bin'), dtype=np.float32)
+            scan_data = scan_data.reshape((-1, 4))[:,:3]
+            scan_rings=separate_scan_rings(scan_data)
+            np.save(os.path.join(output_pcd_path,str(data_id)+'.npy'),scan_rings)
 
-    # Save the pose ids
-    np.savetxt(output_gnss_id_path,gnss_ids,fmt='%d')
-        
-main()
+            gnss_id=gnss_id+utils.take_following_N_m(gnss_data[gnss_id:],dist_between_samples)
+            data_id+=1
+
+if __name__=="__main__": 
+    main()
 
 
 

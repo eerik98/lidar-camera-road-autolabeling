@@ -132,10 +132,10 @@ def interpolate(
 
 def main():
 
-    #day=sys.argv[1]
     seq=sys.argv[1]
+    param_file=sys.argv[2]
 
-    with open('params_kitti360.yaml', 'r') as file:
+    with open(param_file, 'r') as file:
         params = yaml.safe_load(file)
         crop_start=params['data_sampling']['crop_start']
         l_wheel_0=params['origin']['l_wheel_scan_loc']
@@ -149,8 +149,15 @@ def main():
         use_slope=config['use_slope']
         max_radial_dist=config['max_radial_dist']
 
-    #camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_cadcd(dataset_path,day)
-    camera_matrix,extrinsics,gnss2lidar=utils.load_calib_kitti360(dataset_path)
+    if param_file=='params_kitti360.yaml':
+        camera_matrix,extrinsics,gnss2lidar=utils.load_calib_kitti360(dataset_path)
+    if param_file=='params_cadcd.yaml':
+        day=seq.split('/')[0]
+        camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_cadcd(dataset_path,day)
+    if param_file=='params_own_data.yaml':
+        day=seq.split('/')[0]
+        camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_own_data(dataset_path,day)
+
     camera_matrix[1,2]=camera_matrix[1,2]-crop_start #add the effect off cropping
 
     l_wheel_img_location=utils.lidar_points_to_image(np.array(l_wheel_0).reshape(1,-1),extrinsics,camera_matrix).flatten() 
@@ -172,7 +179,7 @@ def main():
     os.makedirs(auto_label_path,exist_ok=True)
 
 
-    num_frames = len(os.listdir(scan_path))
+    num_frames = len(os.listdir(trajectory_path))
     for data_id in tqdm(range(num_frames)):
 
         #Read data
@@ -220,4 +227,5 @@ def main():
         cv2.imwrite(os.path.join(auto_label_path,str(data_id)+'.png'),rgb_label)
         cv2.imwrite(os.path.join(auto_label_overlaid_path,str(data_id)+'.png'),overlaid_img)
 
-main()
+if __name__=="__main__": 
+    main()
