@@ -1,5 +1,5 @@
 # lidar-camera-road-autolabeling
-[[`Video`](https://www.youtube.com/watch?v=sMpXFS5VvJk)] [[`Arxiv`](https://www.youtube.com/watch?v=sMpXFS5VvJk)]
+[[`Video`](https://www.youtube.com/watch?v=JQp3jwBQPP8))] [[`Arxiv`](https://www.youtube.com/watch?v=sMpXFS5VvJk)]
 
 Source code for the paper: **"Trajectory-based road auto labeling with lidar-camera fusion in Winter Conditions"**
 
