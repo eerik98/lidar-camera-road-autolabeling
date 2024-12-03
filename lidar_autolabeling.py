@@ -143,10 +143,10 @@ def main():
         dataset_path=params['dataset_path']
         
         config=params['lidar_auto_labeling']
-        slope_std=config['slope_label_std']
+        gradient_std=config['gradient_label_std']
         height_std=config['height_label_std']
         use_height=config['use_height']
-        use_slope=config['use_slope']
+        use_gradient=config['use_gradient']
         max_radial_dist=config['max_radial_dist']
 
     if param_file=='params_kitti360.yaml':
@@ -199,16 +199,16 @@ def main():
         height_score=get_height_score(scan,trajectory_data,height_std,max_radial_dist)
 
         #Compute gradient score
-        slope_score=get_gradient_score(scan,trajectory_data,slope_std)
+        gradient_score=get_gradient_score(scan,trajectory_data,gradient_std)
 
         #Combine scores
-        if use_height and use_slope:
-            score=utils.nanmean(np.concatenate(height_score),np.concatenate(slope_score),require_both=True)
-        if use_height and not use_slope:
+        if use_height and use_gradient:
+            score=utils.nanmean(np.concatenate(height_score),np.concatenate(gradient_score),require_both=True)
+        if use_height and not use_gradient:
             score=np.concatenate(height_score)
-        if use_slope and not use_height:
-            score=np.concatenate(slope_score)
-        if not use_height and not use_slope:
+        if use_gradient and not use_height:
+            score=np.concatenate(gradient_score)
+        if not use_height and not use_gradient:
             print("Set at least one of the options: use_height or use_slope to True")
             break
         

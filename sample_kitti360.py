@@ -80,7 +80,7 @@ def separate_scan_rings(
     
     grouped_coords=np.array(grouped_coords,dtype='object')
 
-    return grouped_coords[7:]
+    return grouped_coords[7:] #first seven scan rings usually not visible in camera and quality poor. Not needed here. 
 
 def main():
 

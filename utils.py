@@ -16,7 +16,7 @@ def load_calib_kitti360(
 ) ->Tuple[np.ndarray,...]:  #calibration params as numpy arrays
     
     """
-    Fetches calibration data for kitti360
+    Fetches calibration data for kitti360. Partly borrowed from https://github.com/autonomousvision/kitti360Scripts. 
     """
 
     lastrow = np.array([0,0,0,1]).reshape(1,4)

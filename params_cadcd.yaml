@@ -1,41 +1,41 @@
 #params.yaml
 
-dataset_path: '/home/eerik/data_storage/DATA/cadcd'
+dataset_path: '/home/eerik/data_storage/DATA/cadcd' #path to the dataset 
 
-origin: #location of the front wheels and their center in lidar coords. 
-  l_wheel_scan_loc: [2, 1, -2.1]
-  center_scan_loc: [2, 0, -2.1]
-  r_wheel_scan_loc: [2, -1, -2.1]
+origin: # used as additional reference for lidar-based autolabeling, as the closest scan ring can be quite far away from the vehicle
+  l_wheel_scan_loc: [2, 1, -2.1] # location of the left wheel in the lidar frame (estimated
+  center_scan_loc: [2, 0, -2.1] # location of the front axel center in the lidar frame
+  r_wheel_scan_loc: [2, -1, -2.1] #location of the left wheel in the lidar frame. 
 
 data_sampling:
-  crop_start: 370
-  crop_end: 770
-  dist_between_samples: 5
+  crop_start: 370 # image cropping start location (pixels from top). It is recommend to crop out unrelevant image ares (sky, car hood). 
+  crop_end: 770 # image cropping end location (pixels from top)
+  dist_between_samples: 5 # distance between samples (meters)
 
 pre_processing:
-  lidar_fov: 90
-  distance_filter_threshold: 1
-  height_filter_threshold: 1
-  max_pcd2gnss_distance: 1
-  max_center2wheel_distance: 1.5
-  occlusion_filter_pixel_threshold: 10
-  noise_filtering_nb_neighbors: 20
-  noise_filtering_std_ratio: 1
-  trajectory_length: 100
+  lidar_fov: 90 # lidar point inside the field of view are retained (degrees)
+  distance_filter_threshold: 1 # minimum distance between consecutive trajectory points (meters)
+  height_filter_threshold: 1 # maximum height increase between consecutive trajectory points (meters)
+  max_pcd2gnss_distance: 1 # maximum distance between point cloud and gnss poses to still register a match (meters)
+  max_center2wheel_distance: 1.5 # maximum distance from trajectory center to either wheel to register a match (meters)
+  occlusion_filter_pixel_threshold: 10 # the neihbourhood that is considered when checking occlusion (pixels)
+  noise_filtering_nb_neighbors: 20 # number of neighbours for statistical noise filtering from point cloud
+  noise_filtering_std_ratio: 1 # standard deviation ratio for statistical noise filtering from point cloud
+  trajectory_length: 50 # future trajectory length
 
 lidar_auto_labeling:
-  max_radial_dist: 5
-  use_height: True
-  use_slope: True
-  slope_label_std: 0.02 
-  height_label_std: 0.1 
+  max_radial_dist: 5 # maximum allowed radial distance difference between road point and trajectory point at each scan ring (meters)
+  use_height: True # if height-based autolabeling should be used
+  use_gradient: True # if gradient-based autolabeling should be used
+  gradient_label_std: 0.02 # deviation parameter for gradient-based autolabel
+  height_label_std: 0.1 # deviation parameter for height-based autolabel
  
 camera_auto_labeling:
-  min_refrence_feats: 20
-  img_scale: 1.0
-  camera_label_std: 0.6 
+  min_refrence_feats: 200 # minimum number of reference features for valid prototype
+  img_scale: 1.0 # image scaling before extracting features. For large images downscaling might be needed to fit in the GPU.
+  camera_label_std: 0.6 # deviation parameter for camera-based autolabel
 
 post_processing:
-  use_lidar_label: True
-  use_camera_label: True
-  use_crf: True
+  use_lidar_label: True # if lidar-based autolabed should be used
+  use_camera_label: True # if camera-based autolabel should be used
+  use_crf: True # if CRF post processing should be used. 

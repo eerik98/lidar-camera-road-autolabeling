@@ -198,7 +198,7 @@ def noise_filtering(
             ring_indices = range(start_index, start_index + num_points)
             mask = [i in ind_set for i in ring_indices]
             filtered_points = ring[np.array(mask)]
-            filtered_scans.append(filtered_points)
+            filtered_scans.append(filtered_points[:,:3])
 
         start_index += num_points
 
@@ -299,7 +299,6 @@ def main():
 
         #Find future trajectory in scan
         future_poses=get_future_poses(poses.copy(),current_pose_id,trajectory_length,gnss2lidar)
-
         trajectory=closest_pcd_point(future_poses,scan,max_pcd2gnss_distance,height_threshold,distance_threshold,np.array(center))
 
         #Define wheel points in scan
