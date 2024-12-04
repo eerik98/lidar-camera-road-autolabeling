@@ -1,9 +1,16 @@
 # lidar-camera-road-autolabeling
-[[`Video`](https://www.youtube.com/watch?v=JQp3jwBQPP8))] [[`Arxiv`](https://www.youtube.com/watch?v=sMpXFS5VvJk)]
+[[`Video`](https://www.youtube.com/watch?v=JQp3jwBQPP8)] [[`Arxiv`](https://arxiv.org/abs/2412.02370)]
 
 Source code for the paper: **"Trajectory-based road auto labeling with lidar-camera fusion in Winter Conditions"**
 
 Eerik Alamikkotervo, Henrik Toikka, Kari Tammi, Risto Ojala
+
+Our method has been developed for automatic road labeling with lidar-camera fusion in winter conditions. These labels can then be used for training a prediction model of your choice. In winter driving conditions most current methods fail and the amount of labeled data is very limited. Our method provides good performance in summer conditions as well, but pre-trained foundation models like [`SAM2`](https://github.com/facebookresearch/sam2) can be more accurate as their training data is mostly from summer conditions. We recommend our method for the following scenarios:
+1. No labeled training data available -> our method generates labels automatically
+2. Adverse driving conditions -> our method combines lidar- and camera-based autolabeling for robust performance
+3. Unstructured and offroad driving scenarios -> our method adapts to varying driving scenarios by using trajectory as a reference
+
+Currently, we can't publish our own data, but for reference, guidelines are provided for Canadian Adverse Driving Conditions Dataset (CADCD) and KITTI-360.   
 
 <img src="https://github.com/user-attachments/assets/ed5e83c8-ffc0-4c2b-862c-72ec9df6e12a" alt="Image description" height="400"/>
 
@@ -107,8 +114,17 @@ Performance metrics are printed to the terminal.
 ## Citing
 
 If you use our code or the related paper in your research, please consider citing.
-
-```bibtex
 ```
+@misc{alamikkotervo2024trajectorybasedroadautolabelinglidarcamera,
+      title={Trajectory-based Road Autolabeling with Lidar-Camera Fusion in Winter Conditions}, 
+      author={Eerik Alamikkotervo and Henrik Toikka and Kari Tammi and Risto Ojala},
+      year={2024},
+      eprint={2412.02370},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2412.02370}, 
+}
+```
+
 
 
