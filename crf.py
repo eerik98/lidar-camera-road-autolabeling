@@ -9,6 +9,8 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms.functional as VF
 
+# the following script has been adapted from: https://github.com/mhamilton723/STEGO/blob/master/src/crf.py
+
 MAX_ITER = 10
 POS_W = 3
 POS_XY_STD = 5 #1
