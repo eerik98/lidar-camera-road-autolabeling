@@ -4,16 +4,15 @@ import os
 import yaml
 import sys
 
-def compute_metrics(autolabel_path,GT_path,GT_ids):
+def compute_metrics(autolabel_path,GT_path):
     TP=0
     FP=0
     FN=0
-    for i,GT_id, in enumerate(GT_ids):
+    for i in range(len(os.listdir(autolabel_path))):
+        
         autolabel=cv2.imread(os.path.join(autolabel_path,str(i)+'.png'),cv2.IMREAD_GRAYSCALE).astype('bool')
-
-        semantic_rgb=cv2.imread(os.path.join(GT_path,str(GT_id).zfill(10)+'.png'))
-        GT = np.all(semantic_rgb == (128, 64, 128), axis=-1).astype('bool')  
-                      
+        GT=cv2.imread(os.path.join(GT_path,str(i)+'.png'),cv2.IMREAD_GRAYSCALE).astype('bool')
+       
         TP+=(autolabel&GT).sum()
         FP+=(autolabel&(~GT)).sum()
         FN+=((~autolabel)&GT).sum()
@@ -48,12 +47,11 @@ def main():
        params = yaml.safe_load(file)
        dataset_path=params['dataset_path']
 
-    pose_id_path=os.path.join(dataset_path,'processed',seq,'data','pose_ids.txt')
-    GT_ids=np.loadtxt(pose_id_path,dtype='int')
     autolabel_path=os.path.join(dataset_path,'processed',seq,'autolabels','post_processing','labels')
-    GT_path=os.path.join(dataset_path,'raw','data_2d_semantics','train',seq+'_sync','image_00','semantic_rgb')
+    GT_path=os.path.join(dataset_path,'processed',seq,'labels')
 
-    TP,FP,FN=compute_metrics(autolabel_path,GT_path,GT_ids)
+
+    TP,FP,FN=compute_metrics(autolabel_path,GT_path)
 
     print("Evaluation for "+seq+':')
     print_results(TP,FP,FN)

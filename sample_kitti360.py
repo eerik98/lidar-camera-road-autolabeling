@@ -111,6 +111,7 @@ def main():
     output_camera_path=os.path.join(output_path,'imgs')
     output_gnss_path=os.path.join(output_path,'poses.csv')
     output_gnss_id_path=os.path.join(output_path,'pose_ids.txt')
+    output_label_path = os.path.join(dataset_path,'processed', seq,'labels')
 
     # gnns data combined to single file
     gnss_data=combine_pose_files(input_gnss_path)
@@ -120,6 +121,7 @@ def main():
     #create dirs if doesnt exist
     os.makedirs(output_pcd_path,exist_ok=True)
     os.makedirs(output_camera_path,exist_ok=True)
+    os.makedirs(output_label_path,exist_ok=True)
 
 
     gnss_id=0
@@ -158,6 +160,13 @@ def main():
 
             # Copy the image corresponding to the current gnss_id
             shutil.copy(os.path.join(input_camera_path,str(gnss_id).zfill(10)+'.png'),os.path.join(output_camera_path,str(data_id)+'.png'))
+
+            #Copy the GT label corresponding to the current gnss_id
+            semantic_rgb=cv2.imread(os.path.join(GT_label_path,str(gnss_id).zfill(10)+'.png'))
+            GT = (np.all(semantic_rgb == (128, 64, 128), axis=-1).astype('uint8'))*255
+
+            print(GT.shape)
+            cv2.imwrite(os.path.join(output_label_path,str(data_id)+'.png'),GT)
 
             gnss_id=gnss_id+max(1,utils.take_following_N_m(gnss_data[gnss_id:],dist_between_samples)) #in every case increase at least by one
 

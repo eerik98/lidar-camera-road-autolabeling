@@ -49,14 +49,13 @@ def load_calib_kitti360(
 
 def load_calib_own_data(
     dataset_path:str,       #path to the dataset root
-    day:str                 #the collection date
 ) ->Tuple[np.ndarray,...]:  #calibration params as numpy arrays
     
     """
     Fetches calibration data for own dataset
     """
 
-    with open(os.path.join(dataset_path,'raw',day,'calib.yaml')) as file:
+    with open(os.path.join(dataset_path,'calib.yaml')) as file:
         calib=yaml.safe_load(file)
     camera_matrix=read_matrix_from_dict(calib['camera_matrix'])
     dist_coeffs=read_matrix_from_dict(calib['dist_coeffs'])
@@ -266,6 +265,7 @@ def visualize_pcd(
     # Loop through each scan ring
     for i, ring in enumerate(scan):
 
+
         # Convert each scan ring to an Open3D point cloud
         pcd = open3d.geometry.PointCloud()
         pcd.points = open3d.utility.Vector3dVector(ring[:, :3])  # Set points for the current scan ring
@@ -277,7 +277,7 @@ def visualize_pcd(
         if i % 3 == 2:
             color=[0,0,1]
 
-        pcd.colors = open3d.utility.Vector3dVector(np.tile(color, (ring.shape[0], 1)))  # Set the color for all points in this ring
+        #pcd.colors = open3d.utility.Vector3dVector(np.tile(color, (ring.shape[0], 1)))  # Set the color for all points in this ring
 
         # Add the colored point cloud to the geometries list
         geometries.append(pcd)
@@ -290,24 +290,24 @@ def visualize_pcd(
         sphere = open3d.geometry.TriangleMesh.create_sphere(radius=0.3)
         sphere.paint_uniform_color([0, 1, 0])  # Set color to green
         sphere.translate(scan[ring][left][:3])
-        geometries.append(sphere)
+        #geometries.append(sphere)
 
         #add center
         sphere = open3d.geometry.TriangleMesh.create_sphere(radius=0.3)
         sphere.paint_uniform_color([0, 1, 0])  # Set color to green
         sphere.translate(scan[ring][center][:3])
-        geometries.append(sphere)
+        #geometries.append(sphere)
 
         #add right wheel
         sphere = open3d.geometry.TriangleMesh.create_sphere(radius=0.3)
         sphere.paint_uniform_color([0, 1, 0])  # Set color to green
         sphere.translate(scan[ring][right][:3])
-        geometries.append(sphere)
+        #geometries.append(sphere)
     
     poses = open3d.geometry.PointCloud()
     poses.points = open3d.utility.Vector3dVector(np.hstack((future_poses,np.zeros((len(future_poses),1)))))
     poses.colors = open3d.utility.Vector3dVector(np.ones((len(future_poses), 3)) * np.array([0, 1, 0]))
-    geometries.append(poses)
+    #geometries.append(poses)
         
     # Set visualization parameters
     visualizer = open3d.visualization.Visualizer()

@@ -19,6 +19,7 @@ pre_processing:
   max_pcd2gnss_distance: 1.0 # maximum distance between point cloud and gnss poses to still register a match (meters)
   max_center2wheel_distance: 2 # maximum distance from trajectory center to either wheel to register a match (meters)
   occlusion_filter_pixel_threshold: 10 # the neihbourhood that is considered when checking occlusion (pixels)
+  filter_noise: False # if noise filtering should be applied to the lidar scan 
   noise_filtering_nb_neighbors: 20 # number of neighbours for statistical noise filtering from point cloud
   noise_filtering_std_ratio: 1 # standard deviation ratio for statistical noise filtering from point cloud
   trajectory_length: 50 # future trajectory length

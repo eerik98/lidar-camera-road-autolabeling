@@ -248,6 +248,7 @@ def main():
         occlusion_filter_pixel_threshold=config['occlusion_filter_pixel_threshold']
         noise_filtering_nb_neighbors=config['noise_filtering_nb_neighbors']
         noise_filtering_std_ratio=config['noise_filtering_std_ratio']
+        filter_noise=config['filter_noise']
         trajectory_length = config['trajectory_length']
         lidar_fov=config['lidar_fov']
 
@@ -258,8 +259,7 @@ def main():
         camera_matrix,extrinsics,gnss2lidar=utils.load_calib_kitti360(dataset_path)
     if param_file=='params_own_data.yaml':
         day=seq.split('/')[0]
-        camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_own_data(dataset_path,day)
-
+        camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_own_data(dataset_path)
 
     camera_matrix[1,2]=camera_matrix[1,2]-crop_start #add the effect off cropping
     seq_path=os.path.join(dataset_path,'processed',seq)
@@ -282,12 +282,12 @@ def main():
     os.makedirs(trajectory_data_path,exist_ok=True)
     os.makedirs(filtered_scan_path,exist_ok=True)
 
-    poses=np.loadtxt(pose_path, delimiter=',',skiprows=0) 
+    poses=np.loadtxt(pose_path, delimiter=',',skiprows=0)
     poses[:,:2] = utils.latlon2utm(poses[:,:2])
     pose_idx=np.loadtxt(pose_id_path,delimiter=',',dtype='int')
 
     for i in tqdm(range(len(pose_idx))):
-
+        
         #Read data
         current_pose_id=pose_idx[i]
         frame=cv2.imread(os.path.join(img_path,str(i)+'.png'))
@@ -295,7 +295,8 @@ def main():
 
         #Filter scan
         scan=fov_filtering(scan,lidar_fov)
-        scan=noise_filtering(scan,noise_filtering_nb_neighbors,noise_filtering_std_ratio)
+        if filter_noise:
+            scan=noise_filtering(scan,noise_filtering_nb_neighbors,noise_filtering_std_ratio)
 
         #Find future trajectory in scan
         future_poses=get_future_poses(poses.copy(),current_pose_id,trajectory_length,gnss2lidar)
@@ -321,7 +322,7 @@ def main():
         
         #Visualize
         #utils.visualize_pcd(scan,wheel_point_idx,future_poses[:,:2]) #uncomment if you want to visualize the trajecotry in the pointcloud
-
+            
         #Save outputs
         overlaid_mask=utils.overlay_mask(frame,mask)
         np.savetxt(os.path.join(trajectory_data_path,str(i)+'.csv'),wheel_point_idx,delimiter=',',fmt='%d')#,fmt='%d, %d,%d,%d')

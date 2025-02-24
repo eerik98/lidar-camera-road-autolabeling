@@ -91,7 +91,7 @@ def get_gradient_score(
         else:
             between_wheels_max_diff=(diff[between_wheels]).max()
         
-        #between_wheels_max_diff=0.01
+        #between_wheels_max_diff=0 #uncomment to test without adaptive thresholding
 
         diff[(diff<between_wheels_max_diff)]=0
 
@@ -156,7 +156,7 @@ def main():
         camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_cadcd(dataset_path,day)
     if param_file=='params_own_data.yaml':
         day=seq.split('/')[0]
-        camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_own_data(dataset_path,day)
+        camera_matrix,extrinsics,dist_coeffs,gnss2lidar=utils.load_calib_own_data(dataset_path)
 
     camera_matrix[1,2]=camera_matrix[1,2]-crop_start #add the effect off cropping
 
@@ -181,7 +181,7 @@ def main():
 
     num_frames = len(os.listdir(trajectory_path))
     for data_id in tqdm(range(num_frames)):
-
+        
         #Read data
         scan=np.load(os.path.join(scan_path,str(data_id)+'.npy'),allow_pickle=True)
         frame=cv2.imread(os.path.join(img_path,str(data_id)+'.png'))

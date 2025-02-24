@@ -80,8 +80,10 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    dinov2_vitg14 = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitg14_reg',verbose=False)
+    dinov2_vitg14 = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitg14_reg',verbose=False, force_reload=False)
     model=dinov2_vitg14.to(device)
+
+    model.eval()
 
     frame=cv2.imread(os.path.join(img_path,'0.png'))
     H_dino_in=int(((frame.shape[0]*scale)//14)*14)  
@@ -92,7 +94,7 @@ def main():
 
     num_files = len(os.listdir(trajectory_mask_path))
     prev_mean_feature=None
-    
+
     for data_id in tqdm(range(num_files)):
         
         #Read data
