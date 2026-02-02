@@ -128,14 +128,12 @@ Performance metrics are printed to the terminal.
 
 If you use our code or the related paper in your research, please consider citing.
 ```
-@misc{alamikkotervo2024trajectorybasedroadautolabelinglidarcamera,
-      title={Trajectory-based Road Autolabeling with Lidar-Camera Fusion in Winter Conditions}, 
-      author={Eerik Alamikkotervo and Henrik Toikka and Kari Tammi and Risto Ojala},
-      year={2024},
-      eprint={2412.02370},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2412.02370}, 
+@article{alamikkotervo2025trajectory,
+  title={Trajectory-based road autolabeling with lidar-camera fusion in winter conditions},
+  author={Alamikkotervo, Eerik and Toikka, Henrik and Tammi, Kari and Ojala, Risto},
+  journal={IEEE Access},
+  year={2025},
+  publisher={IEEE}
 }
 ```
 
